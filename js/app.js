@@ -58,9 +58,11 @@
   document.documentElement.dataset.theme = state.theme;
 
   /* ── 지도 ─────────────────────────────────────────── */
+  // 네트워크 없이 즉시 뜨는 빈 스타일로 시작 → 노선·버스는 바로 보이고, 배경 지도는 loadStyle 이 받아오는 대로 교체
+  const EMPTY_STYLE = { version: 8, glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf', sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': state.theme === 'dark' ? '#0b0f16' : '#e9edf3' } }] };
   const map = new maplibregl.Map({
     container: 'map',
-    style: RASTER_FALLBACK(state.theme),      // 실제 스타일은 아래 loadStyle 에서 교체
+    style: EMPTY_STYLE,
     center: HOME.center, zoom: HOME.zoom, pitch: HOME.pitch, bearing: HOME.bearing,
     maxPitch: 75, minZoom: 8.5, maxZoom: 19, antialias: true,
     attributionControl: false,
@@ -82,10 +84,11 @@
       toast('벡터 지도 스타일을 불러오지 못해 기본 지도로 표시합니다');
     }
     state.fontStack = fontStack;
+    state.styleReady = false;
     map.setStyle(style, { diff: false });
   }
-  map.once('load', () => loadStyle(state.theme));
-  map.on('style.load', () => { state.styleReady = true; addOverlays(); });
+  map.on('style.load', () => { addOverlays(); state.styleReady = true; lastBusPush = 0; });
+  loadStyle(state.theme);
 
   /* ── 오버레이 레이어 ─────────────────────────────── */
   function firstSymbolLayer() {
@@ -99,9 +102,11 @@
     const dark = state.theme === 'dark';
 
     // 3D 건물 (벡터 스타일일 때만)
-    if (map.getSource('openmaptiles')) {
+    const styleSources = (map.getStyle() && map.getStyle().sources) || {};
+    const vectorSrc = Object.keys(styleSources).find(id => styleSources[id].type === 'vector');
+    if (vectorSrc) {
       map.addLayer({
-        id: 'sb-buildings', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 13,
+        id: 'sb-buildings', type: 'fill-extrusion', source: vectorSrc, 'source-layer': 'building', minzoom: 13,
         layout: { visibility: state.buildings ? 'visible' : 'none' },
         paint: {
           'fill-extrusion-color': dark ? '#2a3140' : '#d9dee6',
@@ -252,6 +257,10 @@
   /* ── 프레임 루프 ─────────────────────────────────── */
   let lastReal = performance.now(), lastBusPush = 0, lastUi = 0;
   function frame(now) {
+    try { step(now); } catch (e) { console.error('[frame]', e); }
+    requestAnimationFrame(frame);
+  }
+  function step(now) {
     const dtReal = Math.min(0.25, (now - lastReal) / 1000);
     lastReal = now;
 
@@ -276,11 +285,12 @@
       }
     }
     if (now - lastUi > 250) { lastUi = now; updateClock(); updateStatus(); renderCard(false); }
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
   function pushBuses() {
+    const bodySrc = map.getSource('sb-buses'), ptSrc = map.getSource('sb-bus-pts');
+    if (!bodySrc || !ptSrc) return;
     const zoom = map.getZoom();
     const bodies = [], pts = [];
     const bounds = map.getBounds();
@@ -309,8 +319,8 @@
       });
       pts.push({ type: 'Feature', properties: { id: bus.id, num: r.num, color: r.color, sel: sel ? 1 : 0 }, geometry: { type: 'Point', coordinates: [lng, lat] } });
     }
-    map.getSource('sb-buses').setData({ type: 'FeatureCollection', features: bodies });
-    map.getSource('sb-bus-pts').setData({ type: 'FeatureCollection', features: pts });
+    bodySrc.setData({ type: 'FeatureCollection', features: bodies });
+    ptSrc.setData({ type: 'FeatureCollection', features: pts });
   }
 
   /* ── 선택 ────────────────────────────────────────── */
