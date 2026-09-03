@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Seoul Bus 3D — 서울 시내버스 실시간 3D 노선도</title>
+  <meta name="description" content="서울 시내버스 노선을 3D 지도 위에 그리고, 배차 시간표에 따라 움직이는 버스를 실시간으로 보여주는 웹 지도" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='3' width='24' height='24' rx='6' fill='%234f7de8'/%3E%3Crect x='8' y='8' width='16' height='8' rx='2' fill='%23fff'/%3E%3Ccircle cx='10' cy='22' r='2.5' fill='%23fff'/%3E%3Ccircle cx='22' cy='22' r='2.5' fill='%23fff'/%3E%3C/svg%3E" />
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="map" aria-label="서울 버스 3D 지도"></div>
+
+  <!-- 타이틀 -->
+  <section class="panel brand">
+    <div class="clock" id="clock">--:--:--</div>
+    <h1>Seoul <span>Bus</span> 3D</h1>
+    <div class="sub">서울 시내버스 실시간 노선 · 운행 모형</div>
+  </section>
+
+  <!-- 검색 -->
+  <section class="panel search">
+    <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="노선 · 정류장 검색 — 143, 강남역, 홍대입구역" />
+    <span class="kbd">/</span>
+    <div class="results" id="results"></div>
+  </section>
+
+  <!-- 선택 카드 -->
+  <section class="panel card" id="card"></section>
+
+  <!-- 우측 툴바 -->
+  <div class="rail">
+    <button class="tbtn" id="btnSearch" data-tip="검색 (/)">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="tbtn" id="btnTheme" data-tip="다크 / 라이트">
+      <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="tbtn on" id="btnBuildings" data-tip="3D 건물">
+      <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
+    </button>
+    <button class="tbtn" id="btnRate" data-tip="재생 배속">×1</button>
+    <button class="tbtn on" id="btnStops" data-tip="정류장 표시">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21s-6-5.7-6-11a6 6 0 0 1 12 0c0 5.3-6 11-6 11z"/></svg>
+    </button>
+    <button class="tbtn live" id="btnLive" data-tip="실시간 (API 키 필요)">LIVE</button>
+    <button class="tbtn on" id="btnLegend" data-tip="노선 목록">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <button class="tbtn" id="btnFit" data-tip="전체 보기">
+      <svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+    </button>
+    <button class="tbtn" id="btnHelp" data-tip="도움말">?</button>
+  </div>
+  <div class="rail bottom">
+    <button class="tbtn" id="btnZoomIn" data-tip="확대">+</button>
+    <button class="tbtn" id="btnZoomOut" data-tip="축소">−</button>
+    <button class="tbtn" id="btnNorth" data-tip="정북 · 3D 시점 초기화">N</button>
+  </div>
+
+  <!-- 노선 범례 -->
+  <section class="panel legend" id="legend">
+    <header>
+      <b>노선</b>
+      <span class="actions">
+        <button id="legendAll">모두 켜기</button>
+        <button id="legendNone">모두 끄기</button>
+        <span style="color:var(--text-faint)">· 클릭해서 켜고 끄기</span>
+      </span>
+    </header>
+    <div class="list" id="legendList"></div>
+  </section>
+
+  <!-- 타임라인 -->
+  <section class="panel timeline">
+    <button class="btn play" id="btnPlay" data-tip="재생/일시정지">
+      <svg id="iconPause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+      <svg id="iconPlay" viewBox="0 0 24 24" style="display:none"><path d="M7 4v16l13-8z"/></svg>
+    </button>
+    <span class="t" id="tlTime">00:00</span>
+    <input type="range" id="tlRange" min="0" max="1439" step="1" value="0" />
+    <button class="btn rate" id="tlRate">×1</button>
+    <button class="btn on" id="btnNow">실시간</button>
+  </section>
+
+  <!-- 상태 -->
+  <div class="panel status" id="status"></div>
+
+  <!-- 도움말 -->
+  <div class="help" id="help">
+    <div class="box">
+      <h2>Seoul Bus 3D 사용법</h2>
+      <p>서울 시내버스 노선을 3D 지도 위에 그리고, 배차 간격에 따라 버스가 실제처럼 움직입니다.</p>
+      <table>
+        <tr><td>확대 · 축소</td><td>마우스 휠, 핀치, <kbd>+</kbd> <kbd>−</kbd></td></tr>
+        <tr><td>회전 · 기울이기</td><td>우클릭 드래그 또는 <kbd>Ctrl</kbd> + 드래그</td></tr>
+        <tr><td>버스 정보</td><td>버스를 클릭 — 노선, 다음 정류장, 속도, 따라가기</td></tr>
+        <tr><td>노선 정보</td><td>노선 선 또는 범례 번호 클릭, 검색창에 번호 입력</td></tr>
+        <tr><td>시간 이동</td><td>하단 슬라이더로 시각 변경, 배속 ×1 / ×5 / ×20 / ×60</td></tr>
+        <tr><td>실시간 모드</td><td><code>SEOUL_BUS_API_KEY</code> 로 <code>node server.js</code> 실행 후 LIVE 버튼</td></tr>
+        <tr><td>단축키</td><td><kbd>/</kbd> 검색 · <kbd>Space</kbd> 일시정지 · <kbd>D</kbd> 테마 · <kbd>B</kbd> 건물 · <kbd>Esc</kbd> 닫기</td></tr>
+      </table>
+      <button class="ok" id="helpOk">시작하기</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="js/data/routes.js"></script>
+  <script src="js/geo.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/live.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

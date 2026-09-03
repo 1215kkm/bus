@@ -1,0 +1,11 @@
+{
+  "name": "seoul-bus-3d",
+  "version": "1.0.0",
+  "description": "서울 시내버스 노선과 움직이는 버스를 3D 지도 위에 보여주는 웹앱",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "serve": "python3 -m http.server 8080"
+  },
+  "license": "MIT"
+}
