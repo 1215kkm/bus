@@ -18,6 +18,45 @@ python3 -m http.server 8080
 
 GitHub Pages 에 올려도 그대로 동작합니다(시뮬레이션 모드).
 
+## Vercel 배포 (실시간 모드까지)
+
+GitHub Pages 는 정적 파일만 올라가서 시뮬레이션 모드로만 돕니다.
+실시간(LIVE)까지 인터넷에서 보려면 API 키를 숨겨 줄 서버가 필요하고, Vercel 이 그 역할을 합니다.
+`server.js` 의 어댑터를 `lib/bus-api.js` 로 뽑아 두어서 로컬 서버와 Vercel 함수가 같은 코드를 씁니다.
+
+```
+api/health.js          GET /api/health
+api/cities.js          GET /api/cities
+api/route/[num].js     GET /api/route/143?city=seoul
+api/pos/[routeId].js   GET /api/pos/<busRouteId>?city=seoul
+lib/bus-api.js         seoul / gbis / tago 어댑터 (server.js 와 공용)
+```
+
+1. [vercel.com](https://vercel.com) 에서 GitHub 계정으로 로그인 → **Add New… → Project** → 이 저장소 선택
+2. Framework Preset 은 **Other**, Build Command·Output Directory 는 비워 둡니다 (빌드 과정 없음)
+3. **Settings → Environment Variables** 에 `DATA_GO_KR_API_KEY` = 공공데이터포털 **Decoding 키** 추가
+   (Production·Preview·Development 전부 체크 → 저장 후 **Redeploy** 해야 값이 반영됩니다)
+4. 배포 주소로 들어가 오른쪽 **LIVE** 버튼 클릭
+
+CLI 로 올릴 수도 있습니다.
+
+```bash
+npx vercel login
+npx vercel --prod
+npx vercel env add DATA_GO_KR_API_KEY production   # 키 붙여넣기 → 다시 --prod 배포
+```
+
+`/api/health` 가 `{"live":true}` 로 나오면 키가 제대로 붙은 것입니다.
+
+### 호출량 주의
+
+공공데이터포털 개발계정 키는 보통 **하루 1,000회** 제한입니다.
+화면에서 LIVE 를 켜면 노선 하나당 15초마다 위치를 물어보므로(서울 15개 노선 = 분당 60회)
+그대로 두면 한 사람이 20분 만에 하루치를 씁니다. Vercel 배포본은 차량 위치를 CDN 에 10초,
+노선 형상을 하루 캐시해서 여러 명이 볼 때 호출을 나눠 쓰지만, **혼자 오래 켜 두는 것 자체가 한도를 태웁니다**.
+공개해서 계속 돌릴 거라면 포털에서 운영계정(활용사례 등록)으로 한도를 올리거나,
+`js/live.js` 의 `POLL_MS` 를 늘리고 보고 있는 노선만 폴링하도록 좁히는 편이 좋습니다.
+
 ## 기능
 
 | 기능 | 설명 |
@@ -107,7 +146,9 @@ js/live.js               실시간 API 클라이언트
 js/app.js                지도 레이어·애니메이션·UI·도시 전환
 js/game.js               게임 모드 (운전 물리·의뢰·휴대폰·미니맵·길안내·소리)
 css/game.css             게임 UI 스타일
-server.js                정적 서버 + 실시간 API 프록시 (서울/경기/전국 어댑터, 의존성 없음)
+lib/bus-api.js           실시간 어댑터 (서울/경기/전국, 의존성 없음) — server.js·Vercel 함수 공용
+server.js                로컬 정적 서버 + 실시간 API 프록시
+api/                     Vercel 서버리스 함수 (health·cities·route·pos)
 ```
 
 ### 도시 추가하기
