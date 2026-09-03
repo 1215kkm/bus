@@ -4,7 +4,7 @@
 
   /* ── 설정 ─────────────────────────────────────────── */
   const STYLE = {
-    dark: 'https://tiles.openfreemap.org/styles/dark',
+    dark: 'https://tiles.openfreemap.org/styles/fiord',
     light: 'https://tiles.openfreemap.org/styles/positron',
   };
   const RASTER_FALLBACK = theme => ({
@@ -62,7 +62,7 @@
     container: 'map',
     style: EMPTY_STYLE,
     center: HOME().center, zoom: HOME().zoom, pitch: HOME().pitch, bearing: HOME().bearing,
-    maxPitch: 75, minZoom: 6.5, maxZoom: 19, antialias: true,
+    maxPitch: 85, minZoom: 6.5, maxZoom: 20, antialias: true,
     attributionControl: false,
     maxBounds: [[123.5, 32.5], [132.5, 39.5]],   // 대한민국 전역
   });
@@ -82,6 +82,7 @@
       toast('벡터 지도 스타일을 불러오지 못해 기본 지도로 표시합니다');
     }
     state.fontStack = fontStack;
+    state.currentStyle = style;
     state.styleReady = false;
     map.setStyle(style, { diff: false });
   }
@@ -98,6 +99,8 @@
   function addOverlays() {
     const beforeLabels = firstSymbolLayer();
     const dark = state.theme === 'dark';
+    // 다크 지도가 너무 어둡지 않게 배경을 한 단계 밝힘
+    if (dark) for (const l of map.getStyle().layers || []) if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#1b2331');
 
     // 3D 건물 (벡터 스타일일 때만)
     const styleSources = (map.getStyle() && map.getStyle().sources) || {};
@@ -128,8 +131,8 @@
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ['get', 'color'], 'line-blur': 6,
-        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 4, 14, 12, 17, 26],
-        'line-opacity': ['*', dark ? 0.28 : 0.18, dim],
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 6, 14, 16, 17, 32],
+        'line-opacity': ['*', dark ? 0.3 : 0.18, dim],
       },
     }, beforeLabels);
     map.addLayer({
@@ -137,7 +140,7 @@
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ['get', 'color'],
-        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 1.4, 13, 3, 16, 6, 18, 10],
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 2.4, 13, 4.5, 16, 8.5, 18, 14],
         'line-opacity': ['*', 0.95, dim],
       },
     }, beforeLabels);
@@ -241,6 +244,7 @@
   function applyDim() { refreshRouteSources(); }
 
   map.on('click', e => {
+    if (window.SB_GAME && window.SB_GAME.active) return;
     const hit = map.queryRenderedFeatures(e.point, { layers: ['sb-bus-body', 'sb-route-hit', 'sb-stops'].filter(l => map.getLayer(l)) });
     const bus = hit.find(f => f.layer.id === 'sb-bus-body');
     if (bus) return selectBus(sim.buses.find(b => b.id === bus.properties.id));
@@ -251,6 +255,25 @@
     clearSelection();
   });
   map.on('dragstart', () => { if (state.follow) { state.follow = false; renderCard(); } });
+
+  // 마우스 휠 버튼(가운데 버튼) 드래그 → 좌우: 회전, 상하: 기울기
+  (() => {
+    const canvas = map.getCanvas();
+    let drag = null;
+    canvas.addEventListener('mousedown', e => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      drag = { x: e.clientX, y: e.clientY, bearing: map.getBearing(), pitch: map.getPitch() };
+      canvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      map.jumpTo({ bearing: drag.bearing - dx * 0.35, pitch: Math.max(0, Math.min(map.getMaxPitch(), drag.pitch - dy * 0.35)) });
+    });
+    window.addEventListener('mouseup', e => { if (e.button === 1 && drag) { drag = null; canvas.style.cursor = ''; } });
+    canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
+  })();
 
   /* ── 프레임 루프 ─────────────────────────────────── */
   let lastReal = performance.now(), lastBusPush = 0, lastUi = 0;
@@ -273,6 +296,8 @@
       state.simTime += dtSim * 1000;
       sim.tick(dtSim, state.simTime);
     }
+
+    if (window.SB_GAME && window.SB_GAME.active) window.SB_GAME.tick(dtReal);
 
     if (now - lastBusPush > 40 && state.styleReady) {
       lastBusPush = now;
@@ -532,6 +557,7 @@
   $('btnZoomOut').onclick = () => map.zoomOut();
   $('btnNorth').onclick = () => map.easeTo({ bearing: 0, pitch: map.getPitch() > 5 ? 0 : HOME().pitch, duration: 700 });
   $('btnHelp').onclick = () => el.help.classList.add('open');
+  $('btnGame').onclick = () => { if (window.SB_GAME) window.SB_GAME.toggle(); };
   $('helpOk').onclick = () => { el.help.classList.remove('open'); save('helpSeen', true); };
   el.help.addEventListener('click', e => { if (e.target === el.help) el.help.classList.remove('open'); });
   if (!load('helpSeen', false)) el.help.classList.add('open');
@@ -583,6 +609,7 @@
   live.check().then(ok => { if (!ok) { el.btnLive.classList.add('disabled'); el.btnLive.dataset.tip = '실시간 서버 없음 · 시뮬레이션'; } });
 
   document.addEventListener('keydown', e => {
+    if (window.SB_GAME && window.SB_GAME.active) return;
     const typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (e.key === '/' && !typing) { e.preventDefault(); el.q.focus(); el.q.select(); }
     if (typing) return;
@@ -596,6 +623,7 @@
   function loadCity(id, fly) {
     if (!CITIES[id]) id = 'seoul';
     if (state.liveMode) { live.stop(); state.liveMode = false; el.btnLive.classList.remove('on'); }
+    if (window.SB_GAME && window.SB_GAME.active) window.SB_GAME.stop();
     state.city = id; save('city', id);
     const city = CITIES[id];
     routes = (window.SB_ROUTE_DATA[id] || []).map(G.prepareRoute);
@@ -651,5 +679,5 @@
   function load(k, def) { try { const v = localStorage.getItem('sb:' + k); return v === null ? def : JSON.parse(v); } catch (_) { return def; } }
   function save(k, v) { try { localStorage.setItem('sb:' + k, JSON.stringify(v)); } catch (_) { /* 무시 */ } }
 
-  window.SB_APP = { map, state, live, get sim() { return sim; }, get routes() { return routes; }, loadCity };
+  window.SB_APP = { map, state, live, toast, get sim() { return sim; }, get routes() { return routes; }, loadCity };
 })();

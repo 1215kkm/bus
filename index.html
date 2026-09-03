@@ -9,6 +9,7 @@
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/game.css" />
 </head>
 <body>
   <div id="map" aria-label="서울 버스 3D 지도"></div>
@@ -53,6 +54,7 @@
     <button class="tbtn" id="btnFit" data-tip="전체 보기">
       <svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
     </button>
+    <button class="tbtn" id="btnGame" data-tip="게임 모드 · 배달 드라이버">🎮</button>
     <button class="tbtn" id="btnHelp" data-tip="도움말">?</button>
   </div>
   <div class="rail bottom">
@@ -96,17 +98,22 @@
       <p>서울 시내버스 노선을 3D 지도 위에 그리고, 배차 간격에 따라 버스가 실제처럼 움직입니다.</p>
       <table>
         <tr><td>확대 · 축소</td><td>마우스 휠, 핀치, <kbd>+</kbd> <kbd>−</kbd></td></tr>
-        <tr><td>회전 · 기울이기</td><td>우클릭 드래그 또는 <kbd>Ctrl</kbd> + 드래그</td></tr>
+        <tr><td>회전 · 기울이기</td><td>휠 버튼 드래그(좌우 회전 · 상하 기울기), 우클릭 드래그, <kbd>Ctrl</kbd> + 드래그</td></tr>
         <tr><td>버스 정보</td><td>버스를 클릭 — 노선, 다음 정류장, 속도, 따라가기</td></tr>
         <tr><td>노선 정보</td><td>노선 선 또는 범례 번호 클릭, 검색창에 번호 입력</td></tr>
         <tr><td>시간 이동</td><td>하단 슬라이더로 시각 변경, 배속 ×1 / ×5 / ×20 / ×60</td></tr>
         <tr><td>도시 전환</td><td>왼쪽 위 도시 메뉴 — 서울, 용인 (추가 가능)</td></tr>
         <tr><td>실시간 모드</td><td><code>DATA_GO_KR_API_KEY</code> 로 <code>node server.js</code> 실행 후 LIVE 버튼</td></tr>
+        <tr><td>게임 모드</td><td>🎮 버튼 → 탈것 선택 → W/A/S/D 운전, 말풍선 클릭 → 문자 수락 → 픽업 → 배달. <kbd>C</kbd> 시점 · <kbd>H</kbd> 경적 · <kbd>M</kbd> 소리 · <kbd>P</kbd> 휴대폰</td></tr>
         <tr><td>단축키</td><td><kbd>/</kbd> 검색 · <kbd>Space</kbd> 일시정지 · <kbd>D</kbd> 테마 · <kbd>B</kbd> 건물 · <kbd>Esc</kbd> 닫기</td></tr>
       </table>
       <button class="ok" id="helpOk">시작하기</button>
     </div>
   </div>
+
+  <!-- 게임 모드 -->
+  <div id="game" hidden></div>
+  <div class="game-select" id="gameSelect" hidden></div>
 
   <div class="toast" id="toast"></div>
 
@@ -118,5 +125,7 @@
   <script src="js/sim.js"></script>
   <script src="js/live.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/game.js"></script>
+  <script>window.SB_GAME.init();</script>
 </body>
 </html>
