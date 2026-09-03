@@ -1,6 +1,6 @@
 /* Seoul Bus 3D — 지도·애니메이션·UI 본체 */
 (function () {
-  const G = window.SB_GEO, S = window.SB_SIM, TYPES = window.SB_ROUTE_TYPES;
+  const G = window.SB_GEO, S = window.SB_SIM, TYPES = window.SB_ROUTE_TYPES, CITIES = window.SB_CITIES;
 
   /* ── 설정 ─────────────────────────────────────────── */
   const STYLE = {
@@ -19,16 +19,14 @@
     },
     layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
   });
-  const HOME = { center: [126.99, 37.548], zoom: 11.7, pitch: 58, bearing: -14 };
   const RATES = [1, 5, 20, 60];
 
   /* ── 상태 ─────────────────────────────────────────── */
-  const routes = window.SB_ROUTES.map(G.prepareRoute);
-  const routeById = Object.fromEntries(routes.map(r => [r.id, r]));
-  const sim = new S.Simulation(routes);
+  let routes = [], routeById = {}, sim = new S.Simulation([]);
   const state = {
+    city: (new URLSearchParams(location.search).get('city') in CITIES) ? new URLSearchParams(location.search).get('city') : (load('city', 'seoul') in CITIES ? load('city', 'seoul') : 'seoul'),
     theme: load('theme', 'dark'),
-    hidden: new Set(load('hidden', [])),
+    hidden: new Set(),
     buildings: load('buildings', true),
     showStops: true,
     rate: 1,
@@ -43,8 +41,8 @@
     fontStack: ['Noto Sans Bold'],
     styleReady: false,
   };
-  sim.seed(state.simTime);
   const live = new window.SB_LIVE.LiveFeed(sim, () => { refreshRouteSources(); });
+  const HOME = () => CITIES[state.city].camera;
 
   /* ── DOM ──────────────────────────────────────────── */
   const $ = id => document.getElementById(id);
@@ -53,7 +51,7 @@
     status: $('status'), tlTime: $('tlTime'), tlRange: $('tlRange'), tlRate: $('tlRate'), btnNow: $('btnNow'),
     btnPlay: $('btnPlay'), iconPlay: $('iconPlay'), iconPause: $('iconPause'), help: $('help'), toast: $('toast'),
     btnTheme: $('btnTheme'), btnBuildings: $('btnBuildings'), btnRate: $('btnRate'), btnStops: $('btnStops'),
-    btnLive: $('btnLive'), btnLegend: $('btnLegend'),
+    btnLive: $('btnLive'), btnLegend: $('btnLegend'), citySel: $('city'), sub: $('sub'),
   };
   document.documentElement.dataset.theme = state.theme;
 
@@ -63,10 +61,10 @@
   const map = new maplibregl.Map({
     container: 'map',
     style: EMPTY_STYLE,
-    center: HOME.center, zoom: HOME.zoom, pitch: HOME.pitch, bearing: HOME.bearing,
-    maxPitch: 75, minZoom: 8.5, maxZoom: 19, antialias: true,
+    center: HOME().center, zoom: HOME().zoom, pitch: HOME().pitch, bearing: HOME().bearing,
+    maxPitch: 75, minZoom: 6.5, maxZoom: 19, antialias: true,
     attributionControl: false,
-    maxBounds: [[125.9, 36.9], [128.1, 38.2]],
+    maxBounds: [[123.5, 32.5], [132.5, 39.5]],   // 대한민국 전역
   });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   map.on('error', e => { if (e && e.error && /style/i.test(String(e.error.message))) console.warn(e.error.message); });
@@ -445,7 +443,7 @@
   }
   function toggleRoute(id) {
     if (state.hidden.has(id)) state.hidden.delete(id); else state.hidden.add(id);
-    save('hidden', [...state.hidden]);
+    save('hidden:' + state.city, [...state.hidden]);
     el.legendList.querySelector(`.row[data-id="${id}"]`).classList.toggle('off', state.hidden.has(id));
     refreshRouteSources();
   }
@@ -457,20 +455,24 @@
     for (const b of sim.buses) counts[b.routeId] = (counts[b.routeId] || 0) + 1;
     el.legendList.querySelectorAll('.row').forEach(row => { row.querySelector('[data-count]').textContent = counts[row.dataset.id] ? counts[row.dataset.id] + '대' : ''; });
   }
-  $('legendAll').onclick = () => { state.hidden.clear(); save('hidden', []); buildLegend(); refreshRouteSources(); };
-  $('legendNone').onclick = () => { routes.forEach(r => state.hidden.add(r.id)); save('hidden', [...state.hidden]); buildLegend(); refreshRouteSources(); };
-  buildLegend();
+  $('legendAll').onclick = () => { state.hidden.clear(); save('hidden:' + state.city, []); buildLegend(); refreshRouteSources(); };
+  $('legendNone').onclick = () => { routes.forEach(r => state.hidden.add(r.id)); save('hidden:' + state.city, [...state.hidden]); buildLegend(); refreshRouteSources(); };
 
   /* ── 검색 ────────────────────────────────────────── */
-  const index = [];
-  routes.forEach(r => index.push({ kind: 'route', key: r.num.toLowerCase(), label: r.num, meta: `${r.from} ${r.loop ? '→' : '↔'} ${r.to}`, color: r.color, id: r.id }));
-  const stopSeen = new Map();
-  routes.forEach(r => r.stops.forEach(s => {
-    const k = s.name;
-    if (!stopSeen.has(k)) stopSeen.set(k, { kind: 'stop', key: k.toLowerCase(), label: k, coords: [s.lng, s.lat], nums: [r.num] });
-    else if (!stopSeen.get(k).nums.includes(r.num)) stopSeen.get(k).nums.push(r.num);
-  }));
-  index.push(...stopSeen.values());
+  let index = [], stopCount = 0;
+  function buildSearchIndex() {
+    index = [];
+    routes.forEach(r => index.push({ kind: 'route', key: r.num.toLowerCase(), label: r.num, meta: `${r.from} ${r.loop ? '→' : '↔'} ${r.to}`, color: r.color, id: r.id }));
+    const stopSeen = new Map();
+    routes.forEach(r => r.stops.forEach(s => {
+      const k = s.name;
+      if (!stopSeen.has(k)) stopSeen.set(k, { kind: 'stop', key: k.toLowerCase(), label: k, coords: [s.lng, s.lat], nums: [r.num] });
+      else if (!stopSeen.get(k).nums.includes(r.num)) stopSeen.get(k).nums.push(r.num);
+    }));
+    index.push(...stopSeen.values());
+    stopCount = stopSeen.size;
+    el.q.value = ''; closeResults();
+  }
   let activeIdx = -1, currentResults = [];
 
   el.q.addEventListener('input', () => {
@@ -525,10 +527,10 @@
     for (const id of ['sb-stops', 'sb-stop-labels']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', state.showStops ? 'visible' : 'none');
   };
   el.btnLegend.onclick = () => { const open = el.legend.style.display !== 'none'; el.legend.style.display = open ? 'none' : ''; el.btnLegend.classList.toggle('on', !open); };
-  $('btnFit').onclick = () => map.easeTo(Object.assign({ duration: 1200 }, HOME));
+  $('btnFit').onclick = () => map.easeTo(Object.assign({ duration: 1200 }, HOME()));
   $('btnZoomIn').onclick = () => map.zoomIn();
   $('btnZoomOut').onclick = () => map.zoomOut();
-  $('btnNorth').onclick = () => map.easeTo({ bearing: 0, pitch: map.getPitch() > 5 ? 0 : HOME.pitch, duration: 700 });
+  $('btnNorth').onclick = () => map.easeTo({ bearing: 0, pitch: map.getPitch() > 5 ? 0 : HOME().pitch, duration: 700 });
   $('btnHelp').onclick = () => el.help.classList.add('open');
   $('helpOk').onclick = () => { el.help.classList.remove('open'); save('helpSeen', true); };
   el.help.addEventListener('click', e => { if (e.target === el.help) el.help.classList.remove('open'); });
@@ -574,7 +576,7 @@
 
   el.btnLive.onclick = async () => {
     if (state.liveMode) { live.stop(); state.liveMode = false; el.btnLive.classList.remove('on'); sim.seed(Date.now()); refreshRouteSources(); return toast('시뮬레이션 모드로 전환했습니다'); }
-    if (!(await live.check())) return toast('실시간 서버가 없습니다. SEOUL_BUS_API_KEY 를 설정하고 node server.js 로 실행하세요');
+    if (!(await live.check())) return toast('실시간 서버가 없습니다. DATA_GO_KR_API_KEY 를 설정하고 node server.js 로 실행하세요');
     state.liveMode = true; setRealtime(true); el.btnLive.classList.add('on');
     live.start(); toast('서울시 버스 실시간 위치를 불러옵니다');
   };
@@ -590,6 +592,32 @@
     if (e.key === 'Escape') { el.help.classList.remove('open'); clearSelection(); }
   });
 
+  /* ── 도시 ────────────────────────────────────────── */
+  function loadCity(id, fly) {
+    if (!CITIES[id]) id = 'seoul';
+    if (state.liveMode) { live.stop(); state.liveMode = false; el.btnLive.classList.remove('on'); }
+    state.city = id; save('city', id);
+    const city = CITIES[id];
+    routes = (window.SB_ROUTE_DATA[id] || []).map(G.prepareRoute);
+    routeById = Object.fromEntries(routes.map(r => [r.id, r]));
+    sim = new S.Simulation(routes);
+    sim.seed(state.simTime);
+    live.sim = sim; live.city = id;
+    state.hidden = new Set(load('hidden:' + id, []).filter(rid => routeById[rid]));
+    state.selectedBus = null; state.selectedRoute = null; state.isolate = false; state.follow = false;
+    el.card.classList.remove('open');
+    if (state.styleReady) { setFocus(null); refreshRouteSources(); pushBuses(); }
+    buildLegend(); buildSearchIndex(); updateStatus();
+    el.citySel.value = id;
+    el.sub.textContent = city.sub;
+    document.title = `Korea Bus 3D — ${city.name} 버스 실시간 3D 노선도`;
+    try { history.replaceState(null, '', id === 'seoul' ? location.pathname : `?city=${id}`); } catch (_) { /* file:// 등 */ }
+    if (fly) map.flyTo(Object.assign({ duration: 2200, essential: true }, city.camera));
+  }
+  el.citySel.innerHTML = Object.entries(CITIES).map(([id, c]) => `<option value="${id}">${c.name}</option>`).join('');
+  el.citySel.onchange = () => { loadCity(el.citySel.value, true); toast(`${CITIES[state.city].name} 노선으로 전환했습니다`); };
+  loadCity(state.city, false);
+
   /* ── 시계 · 상태 ─────────────────────────────────── */
   const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
   function updateClock() {
@@ -601,7 +629,7 @@
   }
   function updateStatus() {
     const visible = sim.buses.filter(b => !state.hidden.has(b.routeId)).length;
-    const stops = stopSeen.size;
+    const stops = stopCount;
     const t = new Date(state.simTime).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' });
     const mode = state.liveMode
       ? `<span class="live-dot"></span>LIVE${live.error ? ' (오류)' : ''}`
@@ -623,5 +651,5 @@
   function load(k, def) { try { const v = localStorage.getItem('sb:' + k); return v === null ? def : JSON.parse(v); } catch (_) { return def; } }
   function save(k, v) { try { localStorage.setItem('sb:' + k, JSON.stringify(v)); } catch (_) { /* 무시 */ } }
 
-  window.SB_APP = { map, sim, state, routes, live };
+  window.SB_APP = { map, state, live, get sim() { return sim; }, get routes() { return routes; }, loadCity };
 })();

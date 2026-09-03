@@ -45,7 +45,13 @@ button { font-family: inherit; }
 }
 
 /* ── 좌상단 타이틀 ─────────────────────────── */
-.brand { top: 16px; left: 16px; padding: 12px 16px 12px; min-width: 210px; pointer-events: none; }
+.brand { top: 16px; left: 16px; padding: 12px 16px 12px; min-width: 230px; }
+.brand .city { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--panel-border); font-size: 11px; color: var(--text-dim); }
+.brand .city select {
+  flex: 1; background: var(--panel-solid); color: var(--text); border: 1px solid var(--panel-border); border-radius: 8px;
+  padding: 5px 8px; font: 600 13px var(--font); outline: none; cursor: pointer;
+}
+.brand .city select:focus { border-color: var(--accent); }
 .brand .clock { font: 500 12px/1 var(--mono); color: var(--text-dim); letter-spacing: 0.02em; }
 .brand h1 { margin: 6px 0 2px; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
 .brand h1 span { color: var(--accent); }
@@ -128,7 +134,7 @@ button { font-family: inherit; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 94, 0.55); } 70% { box-shadow: 0 0 0 7px rgba(255, 77, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 94, 0); } }
 
 /* ── 선택 카드 (버스 / 노선) ───────────────── */
-.card { top: 118px; left: 16px; width: 300px; padding: 14px 16px; display: none; max-height: calc(100vh - 480px); overflow-y: auto; }
+.card { top: 156px; left: 16px; width: 300px; padding: 14px 16px; display: none; max-height: calc(100vh - 480px); overflow-y: auto; }
 .card.open { display: block; }
 .card .head { display: flex; align-items: center; gap: 10px; }
 .card .chip { font-weight: 800; font-size: 14px; padding: 4px 10px; border-radius: 9px; color: #fff; }

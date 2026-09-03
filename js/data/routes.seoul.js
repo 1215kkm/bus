@@ -1,25 +1,17 @@
 /*
- * 서울 시내버스 노선 데이터 (시뮬레이션용)
+ * 서울 시내버스 노선 데이터 (시뮬레이션용) — 노선 종류 정의는 js/data/cities.js
  * ------------------------------------------------------------
  * path 항목: [경도, 위도] 는 굴곡점, [경도, 위도, "정류장명"] 은 정류장.
  * 좌표는 실제 경유 도로를 따라 근사한 값이며, 정확한 정류장 위치와
  * 도로 곡선은 서울 TOPIS 실시간 API 연결 시(server.js) 실제 형상으로 교체됩니다.
  *
- * type : trunk(간선) | branch(지선) | wide(광역) | circular(순환) | village(마을) | night(심야)
+ * type : cities.js 의 SB_ROUTE_TYPES 키 (trunk 간선, branch 지선, wide 광역, circular 순환, village 마을, night 심야 ...)
  * headway : 평시 배차간격(분). 출퇴근 시간대에는 자동으로 짧아집니다.
  * speed   : 평균 운행속도(km/h)
  * loop    : true 이면 순환(한 방향으로 계속 돌기), false 이면 기점↔종점 왕복
  */
-window.SB_ROUTE_TYPES = {
-  trunk:    { label: '간선',  color: '#4f7de8', order: 1 },
-  branch:   { label: '지선',  color: '#5fc244', order: 2 },
-  wide:     { label: '광역',  color: '#f0453c', order: 3 },
-  circular: { label: '순환',  color: '#f5c22b', order: 4 },
-  village:  { label: '마을',  color: '#a3d63c', order: 5 },
-  night:    { label: '심야',  color: '#9b7bff', order: 6 },
-};
-
-window.SB_ROUTES = [
+window.SB_ROUTE_DATA = window.SB_ROUTE_DATA || {};
+window.SB_ROUTE_DATA.seoul = [
   {
     id: 'r143', num: '143', type: 'trunk', headway: 7, speed: 23,
     from: '정릉', to: '개포동',

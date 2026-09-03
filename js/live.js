@@ -1,8 +1,8 @@
 /* 실시간 모드 어댑터
  * server.js 가 서울시 버스 위치정보 API를 중계하면 이 모듈이
  *   /api/health          → 실시간 사용 가능 여부
- *   /api/route/:num      → 실제 노선 형상(경로 좌표 + 정류장)
- *   /api/pos/:routeId    → 노선별 차량 GPS 위치
+ *   /api/route/:num?city=  → 실제 노선 형상(경로 좌표 + 정류장)
+ *   /api/pos/:routeId?city= → 노선별 차량 위치 (GPS 또는 마지막 통과 정류장)
  * 를 주기적으로 읽어 시뮬레이션 버스 대신 실제 차량을 지도에 올립니다.
  * GPS 좌표는 노선 경로에 스냅되고, 다음 갱신까지 부드럽게 보간됩니다.
  */
@@ -13,6 +13,7 @@
   class LiveFeed {
     constructor(sim, onRouteReplaced) {
       this.sim = sim;
+      this.city = 'seoul';
       this.onRouteReplaced = onRouteReplaced;
       this.active = false;
       this.timers = new Map();
@@ -47,7 +48,7 @@
 
     async attach(route) {
       try {
-        const res = await fetch(`api/route/${encodeURIComponent(route.num)}`);
+        const res = await fetch(`api/route/${encodeURIComponent(route.num)}?city=${encodeURIComponent(this.city)}`);
         if (!res.ok) throw new Error(`route ${route.num}: HTTP ${res.status}`);
         const info = await res.json();
         if (!this.active) return;
@@ -70,7 +71,7 @@
     async poll(route) {
       if (!this.active || !route.busRouteId) return;
       try {
-        const res = await fetch(`api/pos/${encodeURIComponent(route.busRouteId)}`, { cache: 'no-store' });
+        const res = await fetch(`api/pos/${encodeURIComponent(route.busRouteId)}?city=${encodeURIComponent(this.city)}`, { cache: 'no-store' });
         if (res.ok) {
           const list = await res.json();
           this.applyPositions(route, list);

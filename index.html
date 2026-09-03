@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Seoul Bus 3D — 서울 시내버스 실시간 3D 노선도</title>
+  <title>Korea Bus 3D — 시내버스 실시간 3D 노선도</title>
   <meta name="description" content="서울 시내버스 노선을 3D 지도 위에 그리고, 배차 시간표에 따라 움직이는 버스를 실시간으로 보여주는 웹 지도" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='3' width='24' height='24' rx='6' fill='%234f7de8'/%3E%3Crect x='8' y='8' width='16' height='8' rx='2' fill='%23fff'/%3E%3Ccircle cx='10' cy='22' r='2.5' fill='%23fff'/%3E%3Ccircle cx='22' cy='22' r='2.5' fill='%23fff'/%3E%3C/svg%3E" />
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -16,8 +16,9 @@
   <!-- 타이틀 -->
   <section class="panel brand">
     <div class="clock" id="clock">--:--:--</div>
-    <h1>Seoul <span>Bus</span> 3D</h1>
-    <div class="sub">서울 시내버스 실시간 노선 · 운행 모형</div>
+    <h1>Korea <span>Bus</span> 3D</h1>
+    <div class="sub" id="sub">서울 시내버스 실시간 노선 · 운행 모형</div>
+    <label class="city"><span>도시</span><select id="city" aria-label="도시 선택"></select></label>
   </section>
 
   <!-- 검색 -->
@@ -99,7 +100,8 @@
         <tr><td>버스 정보</td><td>버스를 클릭 — 노선, 다음 정류장, 속도, 따라가기</td></tr>
         <tr><td>노선 정보</td><td>노선 선 또는 범례 번호 클릭, 검색창에 번호 입력</td></tr>
         <tr><td>시간 이동</td><td>하단 슬라이더로 시각 변경, 배속 ×1 / ×5 / ×20 / ×60</td></tr>
-        <tr><td>실시간 모드</td><td><code>SEOUL_BUS_API_KEY</code> 로 <code>node server.js</code> 실행 후 LIVE 버튼</td></tr>
+        <tr><td>도시 전환</td><td>왼쪽 위 도시 메뉴 — 서울, 용인 (추가 가능)</td></tr>
+        <tr><td>실시간 모드</td><td><code>DATA_GO_KR_API_KEY</code> 로 <code>node server.js</code> 실행 후 LIVE 버튼</td></tr>
         <tr><td>단축키</td><td><kbd>/</kbd> 검색 · <kbd>Space</kbd> 일시정지 · <kbd>D</kbd> 테마 · <kbd>B</kbd> 건물 · <kbd>Esc</kbd> 닫기</td></tr>
       </table>
       <button class="ok" id="helpOk">시작하기</button>
@@ -109,7 +111,9 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="js/data/routes.js"></script>
+  <script src="js/data/cities.js"></script>
+  <script src="js/data/routes.seoul.js"></script>
+  <script src="js/data/routes.yongin.js"></script>
   <script src="js/geo.js"></script>
   <script src="js/sim.js"></script>
   <script src="js/live.js"></script>
