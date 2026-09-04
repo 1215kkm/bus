@@ -17,7 +17,7 @@
    *   c 를 비우면 그 차량의 대표색을 씁니다.
    */
   const VEHICLES = {
-    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 95,  accel: 6.5, brake: 10, turn: 2.8, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70,  range: 6, desc: '빠르고 골목에 강함. 작은 배달 전문',
+    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 125,  accel: 7.6, brake: 10, turn: 2.8, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70,  range: 6, desc: '빠르고 골목에 강함. 작은 배달 전문',
       parts: [
         { x:  0.85, y: 0,    l: 0.62, w: 0.22, b: 0,    h: 0.62, c: '#15171c' },  // 앞바퀴
         { x: -0.82, y: 0,    l: 0.66, w: 0.28, b: 0,    h: 0.66, c: '#15171c' },  // 뒷바퀴
@@ -27,7 +27,7 @@
         { x:  0.02, y: 0,    l: 0.44, w: 0.46, b: 1.72, h: 2.04, c: '#eef2f8' },  // 헬멧
         { x: -0.92, y: 0,    l: 0.62, w: 0.70, b: 0.98, h: 1.66 },                // 배달통
       ] },
-    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 200, accel: 9.5, brake: 13, turn: 2.0, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55,  range: 7, desc: '최고 속도. 빠른 배달 보너스가 큼',
+    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 265, accel: 11.5, brake: 13, turn: 2.0, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55,  range: 7, desc: '최고 속도. 빠른 배달 보너스가 큼',
       parts: [
         { x:  1.45, y: -0.88, l: 0.68, w: 0.26, b: 0,    h: 0.66, c: '#15171c' }, // 앞바퀴 좌
         { x:  1.45, y:  0.88, l: 0.68, w: 0.26, b: 0,    h: 0.66, c: '#15171c' }, // 앞바퀴 우
@@ -38,7 +38,7 @@
         { x: -0.35, y: 0,    l: 1.90, w: 1.54, b: 0.92, h: 1.34, c: '#12161f' },  // 캐빈(유리)
         { x: -1.95, y: 0,    l: 0.22, w: 1.72, b: 1.00, h: 1.24, c: '#1d2230' },  // 리어 스포일러
       ] },
-    bus:   { name: '버스',     emoji: '🚌', maxKmh: 75,  accel: 2.4, brake: 6,  turn: 1.2, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38,  range: 4, desc: '단체 승객 이동 의뢰. 보수가 높음',
+    bus:   { name: '버스',     emoji: '🚌', maxKmh: 96,  accel: 3.1, brake: 6,  turn: 1.2, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38,  range: 4, desc: '단체 승객 이동 의뢰. 보수가 높음',
       parts: [
         { x:  3.60, y: -1.15, l: 1.05, w: 0.34, b: 0,    h: 0.95, c: '#15171c' }, // 앞바퀴
         { x:  3.60, y:  1.15, l: 1.05, w: 0.34, b: 0,    h: 0.95, c: '#15171c' },
@@ -51,7 +51,7 @@
         { x:  0,    y: 0,    l: 10.40, w: 2.40, b: 2.72, h: 3.28, c: '#8fabf0' }, // 지붕
         { x:  1.60, y: 0,    l: 0.30, w: 2.52, b: 0.42, h: 2.10, c: '#2b3242' },  // 중문
       ] },
-    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 80,  accel: 2.6, brake: 6,  turn: 1.1, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34,  range: 3.5, desc: '건설 자재·이삿짐 운반. 보수가 큼',
+    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 102,  accel: 3.3, brake: 6,  turn: 1.1, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34,  range: 3.5, desc: '건설 자재·이삿짐 운반. 보수가 큼',
       parts: [
         { x:  3.00, y: -1.20, l: 1.05, w: 0.36, b: 0,    h: 0.95, c: '#15171c' }, // 앞바퀴
         { x:  3.00, y:  1.20, l: 1.05, w: 0.36, b: 0,    h: 0.95, c: '#15171c' },
@@ -67,7 +67,7 @@
         { x: -4.15, y: 0,    l: 0.30, w: 2.58, b: 1.00, h: 3.05, c: '#6d5630' },  // 뒷문
         { x: -1.50, y: 0,    l: 4.40, w: 2.20, b: 2.85, h: 3.25, c: '#6b5433' },  // 실린 흙더미
       ] },
-    tank:  { name: '탱크',     emoji: '🪖', maxKmh: 60,  accel: 2.0, brake: 5,  turn: 1.0, len: 7,   wid: 3.4, hgt: 2.6, color: '#6b7a45', reward: 2.2, radius: 3800, wave: 'sawtooth', base: 26,  range: 3, desc: '군수 물자 수송. 가장 느리지만 보수 최고',
+    tank:  { name: '탱크',     emoji: '🪖', maxKmh: 78,  accel: 2.7, brake: 5,  turn: 1.0, len: 7,   wid: 3.4, hgt: 2.6, color: '#6b7a45', reward: 2.2, radius: 3800, wave: 'sawtooth', base: 26,  range: 3, desc: '군수 물자 수송. 가장 느리지만 보수 최고',
       parts: [
         { x:  0,    y: -1.50, l: 6.80, w: 0.78, b: 0,    h: 1.02, c: '#23262b' }, // 좌 궤도
         { x:  0,    y:  1.50, l: 6.80, w: 0.78, b: 0,    h: 1.02, c: '#23262b' }, // 우 궤도
@@ -87,6 +87,9 @@
     tank: ['군수 물자', '훈련용 포탄 20발', '전차 부품', '비상 구호품', '야전 취사 장비'],
   };
   const NAMES = ['김민준', '이서연', '박지호', '최수아', '정도윤', '강하은', '조예준', '윤지우', '한서준', '오하린'];
+  const AUTO_KMH = 80;          // 자동 주행 속도(차 최고속도를 넘지는 않음)
+  const AUTO_PITCH = 45;        // 자동 주행 시 카메라 각도
+
   const CAMS = ['driver', 'chase', 'top', 'free'];
   const CAM_LABEL = { driver: '운전석', chase: '추적', top: '탑뷰', free: '자유' };
   /** 도착으로 인정하는 반경(m) — 차가 클수록 넉넉하게 */
@@ -101,7 +104,11 @@
     keys: {}, money: 0, done: 0, failed: 0, requests: [], mission: null, guide: null,
     sound: true, audio: null, minimap: null, markers: new Map(), lastReqTick: 0, lastHud: 0,
     phoneOpen: false, thread: [], typing: null, unread: 0, sitting: null,
+    crashes: 0, lastCrashMsg: 0,
+    auto: false, autoIdx: 0,
   };
+  /* 건물 충돌 — 화면에 그려진 건물 폴리곤을 주기적으로 받아 두고 매 프레임 점 검사 */
+  const solid = { polys: [], at: 0, lng: 0, lat: 0 };
   let app, map, ui = {};
 
   /* ── 진입 · 종료 ─────────────────────────────────── */
@@ -130,6 +137,8 @@
     game.lng = c.lng; game.lat = c.lat; game.heading = map.getBearing(); game.camBearing = game.heading;
     game.speed = 0; game.cam = 'chase'; game.zoomOffset = 0; game.pitchOffset = 0; game.mission = null; game.guide = null; game.sitting = null;
     game.thread = []; game.unread = 0;
+    game.crashes = 0; solid.polys = []; solid.at = 0;
+    game.auto = false; game.autoIdx = 0;
     game.active = true;
     document.body.classList.add('game-on');
     ui.root.hidden = false;
@@ -206,15 +215,110 @@
   /* ── 프레임 ─────────────────────────────────────── */
   function tick(dt) {
     if (!game.active) return;
-    physics(dt);
+    if (!autopilot(dt)) physics(dt);
     camera(dt);
     render();
     missions(dt);
     if (game.audio) game.audio.update(Math.abs(game.speed) / (game.spec.maxKmh / 3.6), game.keys.up ? 1 : 0);
     const now = performance.now();
     if (now - game.lastReqTick > 1000) { game.lastReqTick = now; spawnRequests(); refreshBubbles(); }
+    // 30m 넘게 움직였거나 0.6초 지났으면 주변 건물을 다시 읽음
+    if (now - solid.at > 600 || dist({ lng: game.lng, lat: game.lat }, solid) > 30) refreshSolids();
     if (now - game.lastHud > 120) { game.lastHud = now; updateHud(); }
     if (game.minimap && game.minimap._sbReady) updateMinimap();
+  }
+
+  /** 차 주변 건물 폴리곤을 다시 읽음 (매 프레임은 무거워서 이동·시간 기준으로만) */
+  function refreshSolids() {
+    if (!map.getLayer('sb-buildings')) { solid.polys = []; return; }
+    let visible = 'visible';
+    try { visible = map.getLayoutProperty('sb-buildings', 'visibility') || 'visible'; } catch (_) { /* 무시 */ }
+    if (visible === 'none') { solid.polys = []; return; }   // 건물을 껐으면(B) 충돌도 없음
+    let feats;
+    try {
+      const p = map.project([game.lng, game.lat]);
+      const R = 260;
+      feats = map.queryRenderedFeatures([[p.x - R, p.y - R], [p.x + R, p.y + R]], { layers: ['sb-buildings'] });
+    } catch (_) { return; }
+    const polys = [];
+    for (const f of feats) {
+      const g = f.geometry; if (!g) continue;
+      const rings = g.type === 'Polygon' ? [g.coordinates[0]]
+        : g.type === 'MultiPolygon' ? g.coordinates.map(c => c[0]) : null;
+      if (!rings) continue;
+      for (const r of rings) if (r && r.length > 3) polys.push(r);
+    }
+    solid.polys = polys;
+    solid.lng = game.lng; solid.lat = game.lat; solid.at = performance.now();
+  }
+
+  function inSolid(lng, lat) {
+    for (const ring of solid.polys) {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if ((yi > lat) !== (yj > lat) && lng < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+      }
+      if (inside) return true;
+    }
+    return false;
+  }
+
+  function crash(speedWas) {
+    const kmh = Math.abs(speedWas) * 3.6;
+    game.speed = -Math.sign(speedWas) * Math.min(Math.abs(speedWas) * 0.3, 3.5);   // 살짝 튕겨 나옴
+    if (game.audio) game.audio.crash(Math.min(1, kmh / 90));
+    if (kmh > 25) {
+      game.crashes++;
+      const now = performance.now();
+      if (now - game.lastCrashMsg > 4000) {
+        game.lastCrashMsg = now;
+        app.toast(`쿵! 건물에 부딪혔습니다 · ${Math.round(kmh)}km/h`);
+      }
+    }
+  }
+
+  /** 안내선을 따라 스스로 달림. 처리했으면 true (수동 물리를 건너뜀) */
+  function autopilot(dt) {
+    const m = game.mission;
+    if (!game.auto || !m) return false;
+    const target = m.stage === 'pickup' ? m.req.pickup : m.req.dest;
+    const f = game.guide && game.guide.fc && game.guide.fc.features[0];
+    const path = f && f.geometry && f.geometry.coordinates;
+    let aim = [target.lng, target.lat];
+    if (path && path.length) {
+      if (game.autoIdx >= path.length) game.autoIdx = path.length - 1;
+      // 이미 지난 점은 넘기고, 20m 앞의 점을 바라봄
+      while (game.autoIdx < path.length - 1 && G.haversine([game.lng, game.lat], path[game.autoIdx]) < 20) game.autoIdx++;
+      aim = path[game.autoIdx];
+    }
+    const want = G.bearing([game.lng, game.lat], aim);
+    const diff = ((want - game.heading + 540) % 360) - 180;
+    const rate = game.spec.turn * 57.3 * 1.8 * dt;            // 사람보다 조금 빠르게 꺾음
+    game.heading = (game.heading + Math.max(-rate, Math.min(rate, diff)) + 360) % 360;
+
+    const cap = Math.min(AUTO_KMH, game.spec.maxKmh) / 3.6;
+    const aimSpeed = cap * (Math.abs(diff) > 60 ? 0.42 : Math.abs(diff) > 25 ? 0.7 : 1);
+    game.speed += (aimSpeed - game.speed) * Math.min(1, dt * 2.2);
+    const p = G.move(game.lng, game.lat, game.heading, game.speed * dt, 0);
+    game.lng = p[0]; game.lat = p[1];
+    return true;
+  }
+
+  function setAuto(on) {
+    if (on && !game.mission) return app.toast('의뢰를 수락한 뒤에 쓸 수 있습니다');
+    game.auto = on;
+    game.autoIdx = 0;
+    if (on) {
+      game.cam = 'chase';
+      game.pitchOffset = AUTO_PITCH - CAM_SET.chase.pitch;    // 카메라를 45도로
+      game.keys = {};
+      app.toast(`자동 주행 켜짐 — 추천 경로를 따라 ${Math.round(Math.min(AUTO_KMH, game.spec.maxKmh))}km/h 로 갑니다`);
+    } else {
+      game.pitchOffset = 0;
+      app.toast('자동 주행 꺼짐');
+    }
+    updateHud(true);
   }
 
   function physics(dt) {
@@ -237,7 +341,11 @@
     }
     if (Math.abs(game.speed) > 0.01) {
       const p = G.move(game.lng, game.lat, game.heading, game.speed * dt, 0);
-      game.lng = p[0]; game.lat = p[1];
+      // 차 앞끝(후진이면 뒤끝)이 건물 안으로 들어가려 하면 막는다
+      const nose = Math.sign(game.speed) * s.len * 0.5;
+      const probe = G.move(p[0], p[1], game.heading, nose, 0);
+      if (solid.polys.length && inSolid(probe[0], probe[1])) crash(game.speed);
+      else { game.lng = p[0]; game.lat = p[1]; }
     }
   }
 
@@ -407,6 +515,7 @@
     if (m && !keepMarkers) { m.req.marker.remove(); if (m.destMarker) m.destMarker.remove(); }
     game.guide = null;
     if (m) game.sitting = null;
+    if (game.auto) { game.auto = false; game.pitchOffset = 0; }
     setZone(null);
     renderPending();
     const src = map.getSource('sb-game-guide'); if (src) src.setData(empty());
@@ -472,6 +581,7 @@
   }
   function applyGuide(g) {
     game.guide = g;
+    game.autoIdx = 0;
     const src = map.getSource('sb-game-guide'); if (src) src.setData(g.fc);
     if (game.minimap && game.minimap._sbReady) game.minimap.getSource('mm-guide').setData(g.fc);
   }
@@ -518,8 +628,10 @@
       ui.mission.innerHTML = `<span class="stage">${m.stage === 'pickup' ? '📦 픽업하러 가는 중' : '🏁 배달 중'}</span><b>${target.name}</b><span class="d">${fmtDist(d)}${game.guide && game.guide.osrm ? ' 도로 기준' : ' 직선'}</span><span class="t ${left < 30 ? 'warn' : ''}">⏱ ${fmtTime(left)}</span>`;
     } else if (force) ui.mission.hidden = true;
     ui.money.textContent = game.money.toLocaleString() + '원';
-    ui.count.textContent = `${game.done}건 완료${game.failed ? ' · ' + game.failed + '건 실패' : ''}`;
+    ui.count.textContent = `${game.done}건 완료${game.failed ? ' · ' + game.failed + '건 실패' : ''}${game.crashes ? ' · 충돌 ' + game.crashes : ''}`;
     ui.cam.textContent = CAM_LABEL[game.cam];
+    ui.autoBtn.classList.toggle('on', game.auto);
+    ui.autoBtn.classList.toggle('dim', !game.mission);
     ui.phoneBtn.dataset.unread = game.unread || '';
     ui.soundBtn.textContent = game.sound ? '🔊' : '🔇';
   }
@@ -534,11 +646,15 @@
     const down = e.type === 'keydown';
     const k = e.key.toLowerCase();
     const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake' }[k];
-    if (mapKey) { game.keys[mapKey] = down; e.preventDefault(); return; }
+    if (mapKey) {
+      if (down && game.auto) setAuto(false);            // 직접 조작하면 자동 주행 해제
+      game.keys[mapKey] = down; e.preventDefault(); return;
+    }
     if (!down) return;
     if (k === 'c') { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; game.pitchOffset = 0; app.toast(`시점: ${CAM_LABEL[game.cam]}`); updateHud(true); }
     else if (k === 'h') { if (game.audio) game.audio.horn(game.key); }
     else if (k === 'm') { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); }
+    else if (k === 'g') setAuto(!game.auto);
     else if (k === 'p') { game.phoneOpen ? closePhone() : openPhone(game.sitting); }
     else if (k === 'escape') { if (game.phoneOpen) closePhone(); else stop(); }
   }
@@ -617,6 +733,19 @@
         o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.6);
       });
     }
+    /** 충돌음 — 짧게 감쇠하는 저역 노이즈 */
+    crash(power) {
+      const t = this.ctx.currentTime;
+      const n = Math.floor(this.ctx.sampleRate * 0.3);
+      const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260 + power * 380;
+      const g = this.ctx.createGain(); g.gain.value = 0.08 + power * 0.34;
+      src.connect(f); f.connect(g); g.connect(this.master);
+      src.start(t); src.stop(t + 0.32);
+    }
     ping() { this.chime([880, 1175]); }
     setMuted(m) { this.master.gain.setTargetAtTime(m ? 0 : 0.5, this.ctx.currentTime, 0.05); }
     destroy() { try { this.osc1.stop(); this.osc2.stop(); this.noise.stop(); this.ctx.close(); } catch (_) { /* 무시 */ } }
@@ -639,9 +768,10 @@
         <div class="stats">
           <div class="money" id="gMoney">0원</div>
           <div class="count" id="gCount">0건 완료</div>
-          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · 휠 시점 각도 · Shift+휠 확대 · C 시점 <b id="gCam"></b></div>
+          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · G 자동 주행 · 휠 시점 각도 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
+          <button id="gAutoBtn" title="자동 주행 (G) — 추천 경로로 알아서 갑니다">🧭</button>
           <button id="gPhoneBtn" title="휴대폰 (P)">📱</button>
           <button id="gSoundBtn" title="소리 (M)">🔊</button>
           <button id="gHornBtn" title="경적 (H)">📣</button>
@@ -664,7 +794,7 @@
       <div class="cards">${Object.entries(VEHICLES).map(([k, v]) => `
         <button class="vcard" data-key="${k}" style="--c:${v.color}">
           <span class="emoji">${v.emoji}</span><b>${v.name}</b><small>${v.desc}</small>
-          <div class="bars">${bar('속도', v.maxKmh / 200)}${bar('가속', v.accel / 10)}${bar('조향', v.turn / 3)}${bar('보수', v.reward / 2)}</div>
+          <div class="bars">${bar('속도', v.maxKmh / 265)}${bar('가속', v.accel / 10)}${bar('조향', v.turn / 3)}${bar('보수', v.reward / 2)}</div>
         </button>`).join('')}
       </div>
       <button class="cancel" id="gameCancel">취소</button>
@@ -676,8 +806,9 @@
       vehName: root.querySelector('#gVeh'), speed: root.querySelector('#gSpeed'), gear: root.querySelector('#gGear'), needle: root.querySelector('#gNeedle'),
       money: root.querySelector('#gMoney'), count: root.querySelector('#gCount'), cam: root.querySelector('#gCam'),
       phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'), pending: root.querySelector('#pPending'),
-      phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'),
+      phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'), autoBtn: root.querySelector('#gAutoBtn'),
     };
+    ui.autoBtn.onclick = () => setAuto(!game.auto);
     ui.phoneBtn.onclick = () => game.phoneOpen ? closePhone() : openPhone(game.sitting);
     ui.soundBtn.onclick = () => { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); };
     root.querySelector('#gHornBtn').onclick = () => { if (game.audio) game.audio.horn(game.key); };
