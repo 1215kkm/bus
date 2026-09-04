@@ -321,7 +321,10 @@
     const m = game.mission;
     if (!game.auto || !m) return false;
     const target = m.stage === 'pickup' ? m.req.pickup : m.req.dest;
-    const path = guidePath();
+    const R = arriveRadius();
+    const dTarget = dist({ lng: game.lng, lat: game.lat }, target);
+    const closing = dTarget < R * 1.6;               // 다 와 가면 안내선 대신 목표를 바로 봄
+    const path = closing ? null : guidePath();
     let aim = [target.lng, target.lat];
     if (path && path.length) {
       if (game.autoIdx >= path.length) game.autoIdx = path.length - 1;
@@ -337,7 +340,9 @@
     game.heading = (game.heading + Math.max(-rate, Math.min(rate, diff)) + 360) % 360;
 
     const cap = autoKmh() / 3.6;
-    const aimSpeed = cap * (Math.abs(diff) > 60 ? 0.42 : Math.abs(diff) > 25 ? 0.7 : 1);
+    let aimSpeed = cap * (Math.abs(diff) > 60 ? 0.42 : Math.abs(diff) > 25 ? 0.7 : 1);
+    // 목적지 앞에서는 미끄러지듯 줄임 (v = sqrt(2ad), 감속 4m/s^2)
+    if (closing) aimSpeed = Math.min(aimSpeed, Math.sqrt(2 * 4 * Math.max(0, dTarget - R * 0.35)));
     game.speed += (aimSpeed - game.speed) * Math.min(1, dt * 2.2);
     const p = G.move(game.lng, game.lat, game.heading, game.speed * dt, 0);
     game.lng = p[0]; game.lat = p[1];
@@ -581,7 +586,10 @@
     if (m && !keepMarkers) { m.req.marker.remove(); if (m.destMarker) m.destMarker.remove(); }
     game.guide = null;
     if (m) game.sitting = null;
-    if (game.auto) { game.auto = false; game.pitchOffset = 0; }
+    if (game.auto) {
+      game.auto = false; game.pitchOffset = 0;
+      game.speed = Math.min(game.speed, 5);          // 충돌 판정이 다시 켜지니 굴러가는 정도로
+    }
     setZone(null);
     renderPending();
     const src = map.getSource('sb-game-guide'); if (src) src.setData(empty());
@@ -594,7 +602,7 @@
     const target = m.stage === 'pickup' ? m.req.pickup : m.req.dest;
     const d = dist({ lng: game.lng, lat: game.lat }, target);
     if (game.guide && (performance.now() - game.guide.at > 4000) && d > arriveRadius()) setGuide({ lng: game.lng, lat: game.lat }, target, true);   // 안내선 갱신
-    if (d < arriveRadius() && Math.abs(game.speed) < 4.5) {
+    if (d < arriveRadius()) {                    // 노란 원 안에 들어가면 바로 처리 — 멈출 필요 없음
       if (m.stage === 'pickup') {
         m.stage = 'deliver'; m.pickedAt = elapsed;
         m.req.marker.remove();
