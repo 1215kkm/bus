@@ -87,8 +87,10 @@
     tank: ['군수 물자', '훈련용 포탄 20발', '전차 부품', '비상 구호품', '야전 취사 장비'],
   };
   const NAMES = ['김민준', '이서연', '박지호', '최수아', '정도윤', '강하은', '조예준', '윤지우', '한서준', '오하린'];
-  const AUTO_KMH = 80;          // 자동 주행 속도(차 최고속도를 넘지는 않음)
-  const AUTO_PITCH = 45;        // 자동 주행 시 카메라 각도
+  const AUTO_PITCH = 45;                          // 자동 주행 시 카메라 각도
+  const AUTO_KMH = [30, 50, 80, 120, 160];        // 자동 주행 속도 후보 (차 최고속도를 넘지는 않음)
+  const SPIN_DPS = [0, 1, 2, 4, 8];               // 자동 주행 중 카메라가 도는 속도 (도/초)
+  const spinLabel = d => d ? `${d}°/s · ${Math.round(360 / d)}초에 한 바퀴` : '고정';
 
   const CAMS = ['driver', 'chase', 'top', 'free'];
   const CAM_LABEL = { driver: '운전석', chase: '추적', top: '탑뷰', free: '자유' };
@@ -105,7 +107,8 @@
     sound: true, audio: null, minimap: null, markers: new Map(), lastReqTick: 0, lastHud: 0,
     phoneOpen: false, thread: [], typing: null, unread: 0, sitting: null,
     crashes: 0, lastCrashMsg: 0,
-    auto: false, autoIdx: 0,
+    auto: false, autoIdx: 0, orbit: 0,
+    autoSpeedIdx: 2, spinIdx: 2,     // 기본 80km/h · 2도/초(3분에 한 바퀴)
   };
   /* 건물 충돌 — 화면에 그려진 건물 폴리곤을 주기적으로 받아 두고 매 프레임 점 검사 */
   const solid = { polys: [], at: 0, lng: 0, lat: 0 };
@@ -297,13 +300,16 @@
     const rate = game.spec.turn * 57.3 * 1.8 * dt;            // 사람보다 조금 빠르게 꺾음
     game.heading = (game.heading + Math.max(-rate, Math.min(rate, diff)) + 360) % 360;
 
-    const cap = Math.min(AUTO_KMH, game.spec.maxKmh) / 3.6;
+    const cap = autoKmh() / 3.6;
     const aimSpeed = cap * (Math.abs(diff) > 60 ? 0.42 : Math.abs(diff) > 25 ? 0.7 : 1);
     game.speed += (aimSpeed - game.speed) * Math.min(1, dt * 2.2);
     const p = G.move(game.lng, game.lat, game.heading, game.speed * dt, 0);
     game.lng = p[0]; game.lat = p[1];
     return true;
   }
+
+  /** 지금 설정된 자동 주행 속도 (차 최고속도로 잘림) */
+  const autoKmh = () => Math.min(AUTO_KMH[game.autoSpeedIdx], game.spec ? game.spec.maxKmh : 999);
 
   function setAuto(on) {
     if (on && !game.mission) return app.toast('의뢰를 수락한 뒤에 쓸 수 있습니다');
@@ -313,8 +319,12 @@
       game.cam = 'chase';
       game.pitchOffset = AUTO_PITCH - CAM_SET.chase.pitch;    // 카메라를 45도로
       game.keys = {};
-      app.toast(`자동 주행 켜짐 — 추천 경로를 따라 ${Math.round(Math.min(AUTO_KMH, game.spec.maxKmh))}km/h 로 갑니다`);
+      game.orbit = 0;
+      app.toast(`자동 주행 켜짐 — ${Math.round(autoKmh())}km/h · 카메라 ${spinLabel(SPIN_DPS[game.spinIdx])}`);
     } else {
+      // 돌던 각도를 카메라 방위에 흡수시켜서 끌 때 화면이 튀지 않게
+      game.camBearing = (game.camBearing + game.orbit + 360) % 360;
+      game.orbit = 0;
       game.pitchOffset = 0;
       app.toast('자동 주행 꺼짐');
     }
@@ -352,11 +362,17 @@
   function camera(dt) {
     if (game.cam === 'free') return;
     const c = CAM_SET[game.cam];
-    const k = 1 - Math.exp(-dt * (game.cam === 'driver' ? 10 : 5));
-    let diff = ((game.heading - game.camBearing + 540) % 360) - 180;
+    // 자동 주행 중에는 진행 방향을 천천히 따라가서, 도는 동안 화면이 덜컥거리지 않게
+    const follow = game.cam === 'driver' ? 10 : game.auto ? 1.1 : 5;
+    const k = 1 - Math.exp(-dt * follow);
+    const diff = ((game.heading - game.camBearing + 540) % 360) - 180;
     game.camBearing = (game.camBearing + diff * k + 360) % 360;
-    const center = G.move(game.lng, game.lat, game.heading, c.ahead, 0);
-    map.jumpTo({ center, bearing: game.camBearing, pitch: clamp(c.pitch + game.pitchOffset, 0, 85), zoom: c.zoom + game.zoomOffset });
+
+    if (game.auto) game.orbit = (game.orbit + SPIN_DPS[game.spinIdx] * dt) % 360;
+    const bearing = game.auto ? (game.camBearing + game.orbit + 360) % 360 : game.camBearing;
+    // 공전 중에는 차를 화면 가운데 가깝게 둬야 도는 게 예쁩니다
+    const center = G.move(game.lng, game.lat, bearing, c.ahead * (game.auto ? 0.45 : 1), 0);
+    map.jumpTo({ center, bearing, pitch: clamp(c.pitch + game.pitchOffset, 0, 85), zoom: c.zoom + game.zoomOffset });
   }
 
   function render() {
@@ -632,6 +648,9 @@
     ui.cam.textContent = CAM_LABEL[game.cam];
     ui.autoBtn.classList.toggle('on', game.auto);
     ui.autoBtn.classList.toggle('dim', !game.mission);
+    ui.spinBtn.querySelector('b').textContent = SPIN_DPS[game.spinIdx] ? SPIN_DPS[game.spinIdx] + '°/s' : '고정';
+    ui.speedBtn.querySelector('b').textContent = Math.round(autoKmh()) + 'km/h';
+    ui.spinBtn.classList.toggle('on', game.auto && SPIN_DPS[game.spinIdx] > 0);
     ui.phoneBtn.dataset.unread = game.unread || '';
     ui.soundBtn.textContent = game.sound ? '🔊' : '🔇';
   }
@@ -770,6 +789,10 @@
         <div class="stats">
           <div class="money" id="gMoney">0원</div>
           <div class="count" id="gCount">0건 완료</div>
+          <div class="autocfg">
+            <button id="gSpinBtn" title="자동 주행 중 카메라가 도는 속도">🔄 <b></b></button>
+            <button id="gSpeedBtn" title="자동 주행 속도 (차 최고속도까지만)">⚡ <b></b></button>
+          </div>
           <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · G 자동 주행 · 휠 확대·축소 · Shift+휠 시점 각도 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
@@ -809,8 +832,20 @@
       money: root.querySelector('#gMoney'), count: root.querySelector('#gCount'), cam: root.querySelector('#gCam'),
       phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'), pending: root.querySelector('#pPending'),
       phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'), autoBtn: root.querySelector('#gAutoBtn'),
+      spinBtn: root.querySelector('#gSpinBtn'), speedBtn: root.querySelector('#gSpeedBtn'),
     };
     ui.autoBtn.onclick = () => setAuto(!game.auto);
+    ui.spinBtn.onclick = () => {
+      game.spinIdx = (game.spinIdx + 1) % SPIN_DPS.length;
+      app.toast(`카메라 회전 — ${spinLabel(SPIN_DPS[game.spinIdx])}`);
+      updateHud(true);
+    };
+    ui.speedBtn.onclick = () => {
+      game.autoSpeedIdx = (game.autoSpeedIdx + 1) % AUTO_KMH.length;
+      const set = AUTO_KMH[game.autoSpeedIdx], eff = Math.round(autoKmh());
+      app.toast(`자동 주행 속도 — ${eff}km/h${eff < set ? ` (${game.spec.name} 최고속도까지만)` : ''}`);
+      updateHud(true);
+    };
     ui.phoneBtn.onclick = () => game.phoneOpen ? closePhone() : openPhone(game.sitting);
     ui.soundBtn.onclick = () => { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); };
     root.querySelector('#gHornBtn').onclick = () => { if (game.audio) game.audio.horn(game.key); };

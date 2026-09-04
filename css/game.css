@@ -47,9 +47,15 @@ body.game-on .rail.bottom { display: none; }
 .gauge .speed b { font: 800 30px var(--mono); line-height: 1; display: block; }
 .gauge .speed span { font-size: 10px; color: var(--text-dim); }
 .gauge .gear { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font: 700 12px var(--mono); color: var(--accent); }
-.stats { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
+.stats { display: flex; flex-direction: column; gap: 3px; min-width: 215px; }
 .stats .money { font: 800 22px var(--mono); }
 .stats .count { font-size: 12px; color: var(--text-dim); }
+.stats .autocfg { display: flex; gap: 6px; margin-top: 5px; }
+.stats .autocfg button { display: flex; align-items: center; gap: 4px; background: rgba(127, 127, 127, 0.12); border: 1px solid var(--panel-border); color: var(--text-dim); border-radius: 9px; padding: 4px 8px; font: 600 11px var(--font); cursor: pointer; white-space: nowrap; }
+.stats .autocfg button:hover { background: rgba(127, 127, 127, 0.24); color: var(--text); }
+.stats .autocfg button b { font: 700 11px var(--mono); color: var(--text); }
+.stats .autocfg button.on { border-color: var(--accent); color: var(--accent); }
+.stats .autocfg button.on b { color: var(--accent); }
 .stats .keys { font-size: 10px; color: var(--text-faint); margin-top: 4px; white-space: nowrap; }
 .stats .keys b { color: var(--accent); }
 .hud-bottom .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
