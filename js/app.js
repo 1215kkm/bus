@@ -269,7 +269,7 @@
     window.addEventListener('mousemove', e => {
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      map.jumpTo({ bearing: drag.bearing - dx * 0.35, pitch: Math.max(0, Math.min(map.getMaxPitch(), drag.pitch - dy * 0.35)) });
+      map.jumpTo({ bearing: drag.bearing + dx * 0.35, pitch: Math.max(0, Math.min(map.getMaxPitch(), drag.pitch - dy * 0.35)) });
     });
     window.addEventListener('mouseup', e => { if (e.button === 1 && drag) { drag = null; canvas.style.cursor = ''; } });
     canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });

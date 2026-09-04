@@ -9,30 +9,95 @@
  */
 (function () {
   const G = window.SB_GEO;
+  const GAME_NAME = '퀵서비스의 달인';
 
-  /* ── 탈것 ─────────────────────────────────────────── */
+  /* ── 탈것 ─────────────────────────────────────────
+   * parts: 차체를 이루는 상자들 (차량 기준 좌표, 단위 m)
+   *   x 앞(+)/뒤(-) · y 오른쪽(+)/왼쪽(-) · l 길이 · w 폭 · b 바닥높이 · h 윗면높이
+   *   c 를 비우면 그 차량의 대표색을 씁니다.
+   */
   const VEHICLES = {
-    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 95,  accel: 6.5, brake: 10, turn: 2.8, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70,  range: 6, desc: '빠르고 골목에 강함. 작은 배달 전문' },
-    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 200, accel: 9.5, brake: 13, turn: 2.0, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55,  range: 7, desc: '최고 속도. 빠른 배달 보너스가 큼' },
-    bus:   { name: '버스',     emoji: '🚌', maxKmh: 75,  accel: 2.4, brake: 6,  turn: 1.2, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38,  range: 4, desc: '단체 승객 이동 의뢰. 보수가 높음' },
-    truck: { name: '트럭',     emoji: '🚚', maxKmh: 100, accel: 3.2, brake: 7,  turn: 1.4, len: 8,   wid: 2.4, hgt: 3.0, color: '#7bd3c8', reward: 1.5, radius: 3000, wave: 'sawtooth', base: 42,  range: 4, desc: '이삿짐·가전 같은 큰 짐' },
-    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 80,  accel: 2.6, brake: 6,  turn: 1.1, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34,  range: 3.5, desc: '건설 자재 운반. 느리지만 보수 최고' },
+    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 95,  accel: 6.5, brake: 10, turn: 2.8, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70,  range: 6, desc: '빠르고 골목에 강함. 작은 배달 전문',
+      parts: [
+        { x:  0.85, y: 0,    l: 0.62, w: 0.22, b: 0,    h: 0.62, c: '#15171c' },  // 앞바퀴
+        { x: -0.82, y: 0,    l: 0.66, w: 0.28, b: 0,    h: 0.66, c: '#15171c' },  // 뒷바퀴
+        { x:  0.05, y: 0,    l: 1.50, w: 0.50, b: 0.32, h: 0.98 },                // 차체·연료탱크
+        { x:  0.78, y: 0,    l: 0.18, w: 0.74, b: 0.86, h: 1.10, c: '#2b3242' },  // 핸들바
+        { x: -0.20, y: 0,    l: 0.62, w: 0.52, b: 0.95, h: 1.72, c: '#2b3242' },  // 라이더
+        { x:  0.02, y: 0,    l: 0.44, w: 0.46, b: 1.72, h: 2.04, c: '#eef2f8' },  // 헬멧
+        { x: -0.92, y: 0,    l: 0.62, w: 0.70, b: 0.98, h: 1.66 },                // 배달통
+      ] },
+    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 200, accel: 9.5, brake: 13, turn: 2.0, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55,  range: 7, desc: '최고 속도. 빠른 배달 보너스가 큼',
+      parts: [
+        { x:  1.45, y: -0.88, l: 0.68, w: 0.26, b: 0,    h: 0.66, c: '#15171c' }, // 앞바퀴 좌
+        { x:  1.45, y:  0.88, l: 0.68, w: 0.26, b: 0,    h: 0.66, c: '#15171c' }, // 앞바퀴 우
+        { x: -1.50, y: -0.92, l: 0.74, w: 0.30, b: 0,    h: 0.70, c: '#15171c' }, // 뒷바퀴 좌
+        { x: -1.50, y:  0.92, l: 0.74, w: 0.30, b: 0,    h: 0.70, c: '#15171c' }, // 뒷바퀴 우
+        { x:  0,    y: 0,    l: 4.40, w: 1.80, b: 0.28, h: 0.92 },                // 로우 바디
+        { x:  1.72, y: 0,    l: 1.00, w: 1.66, b: 0.30, h: 0.74 },                // 낮은 보닛
+        { x: -0.35, y: 0,    l: 1.90, w: 1.54, b: 0.92, h: 1.34, c: '#12161f' },  // 캐빈(유리)
+        { x: -1.95, y: 0,    l: 0.22, w: 1.72, b: 1.00, h: 1.24, c: '#1d2230' },  // 리어 스포일러
+      ] },
+    bus:   { name: '버스',     emoji: '🚌', maxKmh: 75,  accel: 2.4, brake: 6,  turn: 1.2, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38,  range: 4, desc: '단체 승객 이동 의뢰. 보수가 높음',
+      parts: [
+        { x:  3.60, y: -1.15, l: 1.05, w: 0.34, b: 0,    h: 0.95, c: '#15171c' }, // 앞바퀴
+        { x:  3.60, y:  1.15, l: 1.05, w: 0.34, b: 0,    h: 0.95, c: '#15171c' },
+        { x: -3.10, y: -1.20, l: 1.10, w: 0.42, b: 0,    h: 0.98, c: '#15171c' }, // 뒷바퀴(복륜)
+        { x: -3.10, y:  1.20, l: 1.10, w: 0.42, b: 0,    h: 0.98, c: '#15171c' },
+        { x:  0,    y: 0,    l: 10.80, w: 2.46, b: 0.42, h: 2.72 },               // 차체
+        { x: -0.20, y: 0,    l: 9.20, w: 2.54, b: 1.44, h: 2.26, c: '#d8e3ff' },  // 창문 띠
+        { x:  5.10, y: 0,    l: 0.48, w: 2.32, b: 1.20, h: 2.62, c: '#c2d6f7' },  // 앞유리
+        { x: -5.20, y: 0,    l: 0.40, w: 2.30, b: 1.30, h: 2.50, c: '#c2d6f7' },  // 뒷유리
+        { x:  0,    y: 0,    l: 10.40, w: 2.40, b: 2.72, h: 3.28, c: '#8fabf0' }, // 지붕
+        { x:  1.60, y: 0,    l: 0.30, w: 2.52, b: 0.42, h: 2.10, c: '#2b3242' },  // 중문
+      ] },
+    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 80,  accel: 2.6, brake: 6,  turn: 1.1, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34,  range: 3.5, desc: '건설 자재·이삿짐 운반. 보수가 큼',
+      parts: [
+        { x:  3.00, y: -1.20, l: 1.05, w: 0.36, b: 0,    h: 0.95, c: '#15171c' }, // 앞바퀴
+        { x:  3.00, y:  1.20, l: 1.05, w: 0.36, b: 0,    h: 0.95, c: '#15171c' },
+        { x: -1.90, y: -1.28, l: 1.10, w: 0.46, b: 0,    h: 1.00, c: '#15171c' }, // 뒷바퀴 앞축
+        { x: -1.90, y:  1.28, l: 1.10, w: 0.46, b: 0,    h: 1.00, c: '#15171c' },
+        { x: -3.10, y: -1.28, l: 1.10, w: 0.46, b: 0,    h: 1.00, c: '#15171c' }, // 뒷바퀴 뒷축
+        { x: -3.10, y:  1.28, l: 1.10, w: 0.46, b: 0,    h: 1.00, c: '#15171c' },
+        { x:  0.20, y: 0,    l: 8.40, w: 2.10, b: 0.50, h: 1.00, c: '#2a2f3a' },  // 섀시
+        { x:  3.00, y: 0,    l: 2.50, w: 2.50, b: 0.85, h: 3.10 },                // 캡
+        { x:  3.78, y: 0,    l: 0.36, w: 2.20, b: 2.00, h: 2.95, c: '#c2d6f7' },  // 앞유리
+        { x:  3.00, y: 0,    l: 2.30, w: 2.58, b: 3.10, h: 3.32, c: '#1d2230' },  // 캡 지붕
+        { x: -1.60, y: 0,    l: 5.20, w: 2.58, b: 1.00, h: 2.85, c: '#8a6d3b' },  // 적재함
+        { x: -4.15, y: 0,    l: 0.30, w: 2.58, b: 1.00, h: 3.05, c: '#6d5630' },  // 뒷문
+        { x: -1.50, y: 0,    l: 4.40, w: 2.20, b: 2.85, h: 3.25, c: '#6b5433' },  // 실린 흙더미
+      ] },
+    tank:  { name: '탱크',     emoji: '🪖', maxKmh: 60,  accel: 2.0, brake: 5,  turn: 1.0, len: 7,   wid: 3.4, hgt: 2.6, color: '#6b7a45', reward: 2.2, radius: 3800, wave: 'sawtooth', base: 26,  range: 3, desc: '군수 물자 수송. 가장 느리지만 보수 최고',
+      parts: [
+        { x:  0,    y: -1.50, l: 6.80, w: 0.78, b: 0,    h: 1.02, c: '#23262b' }, // 좌 궤도
+        { x:  0,    y:  1.50, l: 6.80, w: 0.78, b: 0,    h: 1.02, c: '#23262b' }, // 우 궤도
+        { x:  0,    y: 0,    l: 6.50, w: 2.50, b: 0.50, h: 1.55 },                // 차체
+        { x:  2.60, y: 0,    l: 1.40, w: 2.50, b: 1.18, h: 1.62 },                // 경사 전면
+        { x: -0.50, y: 0,    l: 3.30, w: 2.50, b: 1.55, h: 2.45, c: '#4a5533' },  // 포탑
+        { x:  2.30, y: 0,    l: 4.40, w: 0.42, b: 1.95, h: 2.28, c: '#3a4128' },  // 포신
+        { x: -1.30, y: 0.50, l: 0.95, w: 0.95, b: 2.45, h: 2.85, c: '#3a4128' },  // 큐폴라
+        { x: -2.10, y: 0,    l: 0.50, w: 1.70, b: 1.70, h: 2.20, c: '#3a4128' },  // 뒤 수납함
+      ] },
   };
   const ITEMS = {
     bike: ['치킨', '떡볶이 세트', '아이스 아메리카노 4잔', '꽃다발', '서류 봉투', '약 봉투', '케이크'],
     sport: ['긴급 서류', '결혼반지', '생일 케이크', '한정판 운동화', 'VIP 도시락'],
     bus: ['단체 승객 12명', '수학여행 학생 30명', '회사 워크숍 팀', '동호회 회원들'],
-    truck: ['이삿짐', '냉장고', '가구 세트', '생수 20팔레트', '사무용 책상 10개'],
-    dump: ['모래 8톤', '자갈', '건설 자재', '흙 6톤', '폐콘크리트'],
+    dump: ['모래 8톤', '자갈', '건설 자재', '이삿짐', '흙 6톤', '폐콘크리트'],
+    tank: ['군수 물자', '훈련용 포탄 20발', '전차 부품', '비상 구호품', '야전 취사 장비'],
   };
   const NAMES = ['김민준', '이서연', '박지호', '최수아', '정도윤', '강하은', '조예준', '윤지우', '한서준', '오하린'];
   const CAMS = ['driver', 'chase', 'top', 'free'];
   const CAM_LABEL = { driver: '운전석', chase: '추적', top: '탑뷰', free: '자유' };
-  const CAM_SET = { driver: { pitch: 84, zoom: 19.2, ahead: 9 }, chase: { pitch: 72, zoom: 17.9, ahead: 28 }, top: { pitch: 45, zoom: 16.6, ahead: 60 } };
+  /** 도착으로 인정하는 반경(m) — 차가 클수록 넉넉하게 */
+  const arriveRadius = () => Math.round(60 + game.spec.len * 6);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  const CAM_SET = { driver: { pitch: 84, zoom: 19.2, ahead: 9 }, chase: { pitch: 72, zoom: 18.5, ahead: 24 }, top: { pitch: 45, zoom: 16.6, ahead: 60 } };
 
   const game = {
     active: false, key: null, spec: null,
-    lng: 0, lat: 0, heading: 0, speed: 0, camBearing: 0, cam: 'chase', zoomOffset: 0,
+    lng: 0, lat: 0, heading: 0, speed: 0, camBearing: 0, cam: 'chase', zoomOffset: 0, pitchOffset: 0,
     keys: {}, money: 0, done: 0, failed: 0, requests: [], mission: null, guide: null,
     sound: true, audio: null, minimap: null, markers: new Map(), lastReqTick: 0, lastHud: 0,
     phoneOpen: false, thread: [], typing: null, unread: 0, sitting: null,
@@ -63,7 +128,7 @@
     // 지금 보고 있던 화면 한가운데에서 출발 → 실시간 지도에서 그대로 이어짐
     const c = map.getCenter();
     game.lng = c.lng; game.lat = c.lat; game.heading = map.getBearing(); game.camBearing = game.heading;
-    game.speed = 0; game.cam = 'chase'; game.zoomOffset = 0; game.mission = null; game.guide = null; game.sitting = null;
+    game.speed = 0; game.cam = 'chase'; game.zoomOffset = 0; game.pitchOffset = 0; game.mission = null; game.guide = null; game.sitting = null;
     game.thread = []; game.unread = 0;
     game.active = true;
     document.body.classList.add('game-on');
@@ -73,9 +138,12 @@
     startAudio();
     initMinimap();
     ui.vehName.textContent = `${game.spec.emoji} ${game.spec.name}`;
+    // 휴대폰은 처음부터 오른쪽에 켜져 있고, 의뢰는 여기로 문자가 옵니다
+    ui.phone.hidden = false; game.phoneOpen = true;
     updateHud(true);
-    pushMsg('sys', `${game.spec.name} 운전을 시작합니다. 근처 의뢰 말풍선을 클릭하면 문자로 상세 내용이 옵니다.`);
-    app.toast(`게임 모드 · ${game.spec.name} — W/A/S/D 로 운전, C 로 시점 전환, Esc 로 종료`);
+    pushMsg('sys', `${game.spec.name} 운전 시작 — 의뢰가 들어오면 이 화면으로 문자가 옵니다.`);
+    pushMsg('sys', '의뢰를 기다리는 중…');
+    app.toast(`${GAME_NAME} · ${game.spec.name} — W/A/S/D 운전, 휠 시점 각도, C 시점 전환, Esc 종료`);
     map.easeTo({ center: [game.lng, game.lat], zoom: CAM_SET.chase.zoom, pitch: CAM_SET.chase.pitch, bearing: game.heading, duration: 1600 });
   }
 
@@ -85,18 +153,33 @@
     ui.root.hidden = true; ui.select.hidden = true; ui.phone.hidden = true; game.phoneOpen = false;
     map.scrollZoom.enable();
     clearRequests(); clearMission(false);
-    for (const id of ['sb-game-veh', 'sb-game-guide']) if (map.getLayer(id)) map.removeLayer(id);
-    for (const id of ['sb-game-veh', 'sb-game-guide']) if (map.getSource(id)) map.removeSource(id);
+    dropLayers();
     if (game.minimap) { game.minimap.remove(); game.minimap = null; }
     stopAudio();
     map.easeTo({ pitch: 58, zoom: Math.min(map.getZoom(), 15), duration: 1200 });
-    app.toast('게임 모드를 종료했습니다. 실시간 지도로 돌아갑니다');
+    app.toast(`${GAME_NAME} 종료 — 실시간 지도로 돌아갑니다`);
   }
 
   /* ── 레이어 ─────────────────────────────────────── */
+  const SRC_IDS = ['sb-game-guide', 'sb-game-zone', 'sb-game-veh'];
+  const LAYER_IDS = ['sb-game-guide', 'sb-game-zone-fill', 'sb-game-zone-line', 'sb-game-veh'];
+
   function addLayers() {
-    if (map.getSource('sb-game-veh')) return;
+    if (map.getLayer('sb-game-veh')) return;
+    try {
+      addLayersUnsafe();
+    } catch (e) {
+      // 스타일 교체 중이면 addSource 가 거부됩니다. 반쯤 올라간 것을 걷어내고 style.load 에서 다시 시도.
+      dropLayers();
+    }
+  }
+  function dropLayers() {
+    for (const id of LAYER_IDS) if (map.getLayer(id)) map.removeLayer(id);
+    for (const id of SRC_IDS) if (map.getSource(id)) map.removeSource(id);
+  }
+  function addLayersUnsafe() {
     map.addSource('sb-game-guide', { type: 'geojson', data: empty() });
+    map.addSource('sb-game-zone', { type: 'geojson', data: empty() });
     map.addSource('sb-game-veh', { type: 'geojson', data: empty() });
     map.addLayer({
       id: 'sb-game-guide', type: 'line', source: 'sb-game-guide',
@@ -104,10 +187,19 @@
       paint: { 'line-color': '#ffb547', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 16, 7, 19, 12], 'line-opacity': 0.85, 'line-dasharray': [1.2, 1.4] },
     });
     map.addLayer({
+      id: 'sb-game-zone-fill', type: 'fill', source: 'sb-game-zone',
+      paint: { 'fill-color': '#ffb547', 'fill-opacity': 0.16 },
+    });
+    map.addLayer({
+      id: 'sb-game-zone-line', type: 'line', source: 'sb-game-zone',
+      paint: { 'line-color': '#ffb547', 'line-width': 2.5, 'line-opacity': 0.9, 'line-dasharray': [2, 2] },
+    });
+    map.addLayer({
       id: 'sb-game-veh', type: 'fill-extrusion', source: 'sb-game-veh',
       paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 0.98, 'fill-extrusion-vertical-gradient': true },
     });
     if (game.guide) map.getSource('sb-game-guide').setData(game.guide.fc);
+    if (game.mission) setZone(game.mission.stage === 'pickup' ? game.mission.req.pickup : game.mission.req.dest);
   }
   const empty = () => ({ type: 'FeatureCollection', features: [] });
 
@@ -156,36 +248,32 @@
     let diff = ((game.heading - game.camBearing + 540) % 360) - 180;
     game.camBearing = (game.camBearing + diff * k + 360) % 360;
     const center = G.move(game.lng, game.lat, game.heading, c.ahead, 0);
-    map.jumpTo({ center, bearing: game.camBearing, pitch: c.pitch, zoom: c.zoom + game.zoomOffset });
+    map.jumpTo({ center, bearing: game.camBearing, pitch: clamp(c.pitch + game.pitchOffset, 0, 85), zoom: c.zoom + game.zoomOffset });
   }
 
   function render() {
     const src = map.getSource('sb-game-veh'); if (!src) return;
     const s = game.spec;
     const mpp = G.metersPerPixel(game.lat, map.getZoom());
-    const scale = Math.max(1, 14 * mpp / s.len);
-    const L = s.len * scale, W = s.wid * scale, H = s.hgt * scale;
-    const feats = [
-      { type: 'Feature', properties: { color: s.color, h: H, b: 0 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(game.lng, game.lat, game.heading, L, W) } },
-    ];
-    if (game.key === 'bike') {
-      const rider = G.move(game.lng, game.lat, game.heading, -L * 0.1, 0);
-      feats.push({ type: 'Feature', properties: { color: '#2b2f3a', h: H * 1.9, b: H * 0.6 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(rider[0], rider[1], game.heading, L * 0.35, W * 0.9) } });
-    } else if (game.key === 'sport') {
-      feats.push({ type: 'Feature', properties: { color: '#1d2230', h: H * 1.55, b: H * 0.7 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(...G.move(game.lng, game.lat, game.heading, -L * 0.08, 0), game.heading, L * 0.48, W * 0.82) } });
-    } else if (game.key === 'bus') {
-      feats.push({ type: 'Feature', properties: { color: '#dfe7ff', h: H * 1.06, b: H * 0.55 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(game.lng, game.lat, game.heading, L * 0.96, W * 1.02) } });
-    } else {
-      // 트럭·덤프: 앞쪽 캡 + 뒤 적재함
-      const cab = G.move(game.lng, game.lat, game.heading, L * 0.32, 0);
-      const bed = G.move(game.lng, game.lat, game.heading, -L * 0.2, 0);
-      feats.push({ type: 'Feature', properties: { color: '#1d2230', h: H * 1.15, b: H * 0.5 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(cab[0], cab[1], game.heading, L * 0.3, W * 0.95) } });
-      feats.push({ type: 'Feature', properties: { color: game.key === 'dump' ? '#8a6d3b' : '#c9d3dd', h: H * (game.key === 'dump' ? 1.25 : 1.1), b: H * 0.45 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(bed[0], bed[1], game.heading, L * 0.56, W * 1.02) } });
-    }
+    const scale = Math.max(1, 24 * mpp / s.len);   // 화면에서 최소 24px 는 되게 — 이보다 작으면 차종이 구분 안 됨
+    const feats = s.parts.map(p => ({
+      type: 'Feature',
+      properties: { color: p.c || s.color, h: p.h * scale, b: p.b * scale },
+      geometry: { type: 'Polygon', coordinates: G.boxPolygon(...G.move(game.lng, game.lat, game.heading, p.x * scale, p.y * scale), game.heading, p.l * scale, p.w * scale) },
+    }));
     src.setData({ type: 'FeatureCollection', features: feats });
   }
 
   /* ── 의뢰 ────────────────────────────────────────── */
+  /** 목적지 둘레에 그리는 도착 범위 원 */
+  function setZone(target) {
+    const src = map.getSource('sb-game-zone'); if (!src) return;
+    if (!target) return src.setData(empty());
+    const r = arriveRadius(), ring = [];
+    for (let i = 0; i <= 48; i++) ring.push(G.move(target.lng, target.lat, i / 48 * 360, r, 0));
+    src.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] });
+  }
+
   function stopsPool() {
     const seen = new Map();
     for (const r of app.routes) for (const st of r.stops) if (!seen.has(st.name)) seen.set(st.name, { name: st.name, lng: st.lng, lat: st.lat });
@@ -221,6 +309,9 @@
     req.marker = new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -14] }).setLngLat([pickup.lng, pickup.lat]).addTo(map);
     game.requests.push(req);
     if (game.audio) game.audio.ping();
+    // 의뢰는 지도 말풍선보다 휴대폰으로 먼저 옵니다. 상담 중인 건이 있으면 대기 목록에 쌓입니다.
+    if (!game.sitting || !game.requests.includes(game.sitting)) presentRequest(req);
+    else { pushMsg('sys', `📨 새 의뢰 — ${req.item} · ${req.pickup.name} (${req.reward.toLocaleString()}원)`); renderPending(); }
   }
   function refreshBubbles() {
     const me = { lng: game.lng, lat: game.lat };
@@ -230,13 +321,25 @@
       if (d > game.spec.radius * 2.5) removeRequest(r);   // 너무 멀어지면 의뢰 소멸
     }
   }
-  function removeRequest(r) { r.marker.remove(); game.requests = game.requests.filter(x => x !== r); }
+  function removeRequest(r) {
+    r.marker.remove();
+    game.requests = game.requests.filter(x => x !== r);
+    if (game.sitting === r) game.sitting = null;
+    renderPending();
+  }
   function clearRequests() { for (const r of [...game.requests]) removeRequest(r); }
 
   /* ── 휴대폰 ─────────────────────────────────────── */
   function openPhone(req) {
     game.phoneOpen = true; ui.phone.hidden = false; game.unread = 0;
-    if (req && (!game.sitting || game.sitting.id !== req.id)) {
+    if (req) presentRequest(req); else renderThread();
+    updateHud(true);
+  }
+  /** 의뢰 하나를 문자 대화로 띄우고 수락 버튼까지 붙임 */
+  function presentRequest(req) {
+    if (game.mission) return;
+    if (game.sitting && game.sitting.id === req.id) { renderThread(); return; }
+    {
       game.sitting = req;
       game.thread = [];
       renderThread();
@@ -252,7 +355,20 @@
     }
     renderThread();
   }
-  function closePhone() { game.phoneOpen = false; ui.phone.hidden = true; }
+  function closePhone() { game.phoneOpen = false; ui.phone.hidden = true; updateHud(true); }
+  /** 상담 중인 건 말고 대기 중인 의뢰를 칩으로 보여줌 */
+  function renderPending() {
+    if (!ui.pending) return;
+    const others = game.mission ? [] : game.requests.filter(r => !game.sitting || r.id !== game.sitting.id);
+    ui.pending.hidden = !others.length;
+    if (!others.length) { ui.pending.innerHTML = ''; return; }
+    ui.pending.innerHTML = `<span class="plabel">대기 ${others.length}건</span>` +
+      others.map(r => `<button data-id="${r.id}">💬 ${escape(r.item)} · ${r.reward.toLocaleString()}원</button>`).join('');
+    ui.pending.querySelectorAll('button').forEach(b => b.onclick = () => {
+      const r = game.requests.find(x => String(x.id) === b.dataset.id);
+      if (r) presentRequest(r);
+    });
+  }
   function pushMsg(who, text) {
     game.thread.push({ who, text, t: new Date() });
     if (!game.phoneOpen && who === 'them') { game.unread++; updateHud(true); if (game.audio) game.audio.ping(); }
@@ -265,6 +381,7 @@
     ui.thread.innerHTML = game.thread.map(m => `<div class="msg ${m.who}">${escape(m.text).replace(/\n/g, '<br>')}</div>`).join('');
     ui.thread.scrollTop = ui.thread.scrollHeight;
     ui.phoneActions.innerHTML = '';
+    renderPending();
   }
   function showAccept(req) {
     if (!game.requests.includes(req) || game.mission) return;
@@ -280,7 +397,8 @@
     req.marker.getElement().classList.add('accepted');
     req.marker.getElement().innerHTML = `<b>📦 픽업</b><span>${req.pickup.name}</span>`;
     setGuide({ lng: game.lng, lat: game.lat }, req.pickup);
-    setTimeout(closePhone, 1500);
+    setZone(req.pickup);
+    renderPending();
     if (game.audio) game.audio.chime([523, 659, 784]);
     updateHud(true);
   }
@@ -288,6 +406,9 @@
     const m = game.mission; game.mission = null;
     if (m && !keepMarkers) { m.req.marker.remove(); if (m.destMarker) m.destMarker.remove(); }
     game.guide = null;
+    if (m) game.sitting = null;
+    setZone(null);
+    renderPending();
     const src = map.getSource('sb-game-guide'); if (src) src.setData(empty());
     updateHud(true);
   }
@@ -297,8 +418,8 @@
     const elapsed = (performance.now() - m.t0) / 1000;
     const target = m.stage === 'pickup' ? m.req.pickup : m.req.dest;
     const d = dist({ lng: game.lng, lat: game.lat }, target);
-    if (game.guide && (performance.now() - game.guide.at > 4000) && d > 60) setGuide({ lng: game.lng, lat: game.lat }, target, true);   // 안내선 갱신
-    if (d < 32 && Math.abs(game.speed) < 2.5) {
+    if (game.guide && (performance.now() - game.guide.at > 4000) && d > arriveRadius()) setGuide({ lng: game.lng, lat: game.lat }, target, true);   // 안내선 갱신
+    if (d < arriveRadius() && Math.abs(game.speed) < 4.5) {
       if (m.stage === 'pickup') {
         m.stage = 'deliver'; m.pickedAt = elapsed;
         m.req.marker.remove();
@@ -307,6 +428,7 @@
         pushMsg('sys', `${m.req.item} 픽업 완료! 이제 ${m.req.dest.name}까지 가세요.`);
         setTimeout(() => pushMsg('them', '잘 부탁드려요. 도착하면 문자 주세요 🙏'), 800);
         setGuide({ lng: game.lng, lat: game.lat }, m.req.dest);
+        setZone(m.req.dest);
         if (game.audio) game.audio.chime([659, 880]);
       } else {
         const fast = elapsed < m.req.limit * 0.6;
@@ -414,7 +536,7 @@
     const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake' }[k];
     if (mapKey) { game.keys[mapKey] = down; e.preventDefault(); return; }
     if (!down) return;
-    if (k === 'c') { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; app.toast(`시점: ${CAM_LABEL[game.cam]}`); updateHud(true); }
+    if (k === 'c') { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; game.pitchOffset = 0; app.toast(`시점: ${CAM_LABEL[game.cam]}`); updateHud(true); }
     else if (k === 'h') { if (game.audio) game.audio.horn(game.key); }
     else if (k === 'm') { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); }
     else if (k === 'p') { game.phoneOpen ? closePhone() : openPhone(game.sitting); }
@@ -423,7 +545,10 @@
   function onWheel(e) {
     if (!game.active || game.cam === 'free') return;
     e.preventDefault();
-    game.zoomOffset = Math.max(-2.5, Math.min(1.5, game.zoomOffset - Math.sign(e.deltaY) * 0.15));
+    const step = Math.sign(e.deltaY);
+    // 휠 = 시점 각도(위로 굴리면 눕는 시점 → 앞이 멀리 보임), Shift+휠 = 확대·축소
+    if (e.shiftKey) game.zoomOffset = clamp(game.zoomOffset - step * 0.15, -2.5, 1.5);
+    else game.pitchOffset = clamp(game.pitchOffset - step * 2.5, -45, 25);
   }
 
   /* ── 소리 (Web Audio 합성) ──────────────────────── */
@@ -473,7 +598,7 @@
     }
     horn(key) {
       const t = this.ctx.currentTime;
-      const freqs = key === 'bike' ? [780, 1040] : key === 'sport' ? [440, 554] : [330, 415];
+      const freqs = key === 'bike' ? [780, 1040] : key === 'sport' ? [440, 554] : key === 'tank' ? [165, 208] : [330, 415];
       for (const fq of freqs) {
         const o = this.ctx.createOscillator(), g = this.ctx.createGain();
         o.type = 'square'; o.frequency.value = fq; g.gain.value = 0.0001;
@@ -514,7 +639,7 @@
         <div class="stats">
           <div class="money" id="gMoney">0원</div>
           <div class="count" id="gCount">0건 완료</div>
-          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · C 시점 <b id="gCam"></b></div>
+          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · 휠 시점 각도 · Shift+휠 확대 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
           <button id="gPhoneBtn" title="휴대폰 (P)">📱</button>
@@ -529,12 +654,13 @@
         <div class="pstatus"><span id="pTime">00:00</span><span>📶 🔋</span></div>
         <div class="phead"><span class="avatar">👤</span><b id="pName">배달 의뢰</b><button id="pClose">닫기</button></div>
         <div class="thread" id="pThread"></div>
+        <div class="pending" id="pPending" hidden></div>
         <div class="pactions" id="pActions"></div>
       </div>`;
     const sel = document.getElementById('gameSelect');
     sel.innerHTML = `<div class="box">
-      <h2>🎮 배달 드라이버</h2>
-      <p>탈것을 고르면 지금 보고 있는 화면 한가운데서 출발합니다. 실시간 버스는 계속 다닙니다.</p>
+      <h2>🎮 ${GAME_NAME}</h2>
+      <p>탈것을 고르면 지금 보고 있는 화면 한가운데서 출발합니다. 실시간 버스는 계속 다닙니다.<br>의뢰는 오른쪽 휴대폰으로 문자가 오고, 목적지 둘레의 노란 원 안에서 멈추면 처리됩니다.</p>
       <div class="cards">${Object.entries(VEHICLES).map(([k, v]) => `
         <button class="vcard" data-key="${k}" style="--c:${v.color}">
           <span class="emoji">${v.emoji}</span><b>${v.name}</b><small>${v.desc}</small>
@@ -549,13 +675,13 @@
       root, select: sel, mission: root.querySelector('#gMission'), minimap: root.querySelector('#minimap'), mmHeading: root.querySelector('#mmHeading'),
       vehName: root.querySelector('#gVeh'), speed: root.querySelector('#gSpeed'), gear: root.querySelector('#gGear'), needle: root.querySelector('#gNeedle'),
       money: root.querySelector('#gMoney'), count: root.querySelector('#gCount'), cam: root.querySelector('#gCam'),
-      phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'),
+      phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'), pending: root.querySelector('#pPending'),
       phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'),
     };
     ui.phoneBtn.onclick = () => game.phoneOpen ? closePhone() : openPhone(game.sitting);
     ui.soundBtn.onclick = () => { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); };
     root.querySelector('#gHornBtn').onclick = () => { if (game.audio) game.audio.horn(game.key); };
-    root.querySelector('#gCamBtn').onclick = () => { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; updateHud(true); };
+    root.querySelector('#gCamBtn').onclick = () => { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; game.pitchOffset = 0; updateHud(true); };
     root.querySelector('#gExitBtn').onclick = stop;
     root.querySelector('#pClose').onclick = closePhone;
     map.getCanvas().addEventListener('wheel', onWheel, { passive: false });

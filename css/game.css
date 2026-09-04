@@ -33,7 +33,7 @@ body.game-on .rail.bottom { display: none; }
 @keyframes blink { 50% { opacity: 0.35; } }
 
 /* 미니맵 */
-.minimap-wrap { position: absolute; top: 16px; right: 70px; width: 200px; height: 200px; overflow: hidden; border-radius: 16px; }
+.minimap-wrap { position: absolute; top: 16px; left: 16px; width: 200px; height: 200px; overflow: hidden; border-radius: 16px; }
 #minimap { position: absolute; inset: 0; }
 .mm-heading { position: absolute; left: 50%; top: 50%; width: 0; height: 0; margin: -20px 0 0 -10px; border: 10px solid transparent; border-bottom: 22px solid rgba(255, 255, 255, 0.55); transform-origin: 50% 80%; pointer-events: none; }
 .mm-label { position: absolute; left: 8px; bottom: 6px; font-size: 11px; font-weight: 700; background: var(--panel); padding: 3px 7px; border-radius: 7px; }
@@ -69,7 +69,7 @@ body.game-on .rail.bottom { display: none; }
 @keyframes pop { from { transform: scale(0.4); opacity: 0; } }
 
 /* 휴대폰 */
-.phone { position: absolute; right: 290px; bottom: 16px; width: 290px; height: 560px; background: #0d0f14; border: 6px solid #22262f; border-radius: 34px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; overflow: hidden; color: #f2f4f8; font-family: var(--font); animation: phoneUp .35s cubic-bezier(.2, 1.2, .4, 1); }
+.phone { position: absolute; right: 70px; top: 16px; bottom: 16px; width: 290px; max-height: 660px; background: #0d0f14; border: 6px solid #22262f; border-radius: 34px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; overflow: hidden; color: #f2f4f8; font-family: var(--font); animation: phoneUp .35s cubic-bezier(.2, 1.2, .4, 1); }
 @keyframes phoneUp { from { transform: translateY(40px); opacity: 0; } }
 .phone .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 110px; height: 22px; background: #22262f; border-radius: 0 0 14px 14px; z-index: 2; }
 .phone .pstatus { display: flex; justify-content: space-between; padding: 8px 18px 4px; font: 600 11px var(--mono); color: #aab2c0; }
@@ -82,6 +82,11 @@ body.game-on .rail.bottom { display: none; }
 .phone .msg.them { background: #262b36; align-self: flex-start; border-bottom-left-radius: 5px; }
 .phone .msg.me { background: #2f7cf6; align-self: flex-end; border-bottom-right-radius: 5px; }
 .phone .msg.sys { background: transparent; color: #8b94a3; font-size: 11px; align-self: center; text-align: center; max-width: 92%; }
+.phone .pending { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid #1f232c; overflow-x: auto; scrollbar-width: none; }
+.phone .pending::-webkit-scrollbar { display: none; }
+.phone .pending .plabel { font-size: 10px; color: #8b94a3; white-space: nowrap; }
+.phone .pending button { background: #262b36; color: #dfe4ee; border: 0; border-radius: 10px; padding: 6px 9px; font-size: 11px; white-space: nowrap; cursor: pointer; font-family: var(--font); }
+.phone .pending button:hover { background: #333a48; }
 .phone .pactions { display: flex; gap: 8px; padding: 10px 12px 14px; }
 .phone .pactions:empty { display: none; }
 .phone .pactions button { flex: 1; padding: 11px; border-radius: 12px; border: 0; font-weight: 800; cursor: pointer; font-size: 13px; }
@@ -89,10 +94,10 @@ body.game-on .rail.bottom { display: none; }
 .phone .pactions .dec { background: #262b36; color: #aab2c0; flex: 0.6; }
 
 @media (max-width: 900px) {
-  .minimap-wrap { width: 130px; height: 130px; right: 66px; }
+  .minimap-wrap { width: 130px; height: 130px; left: 8px; }
   .hud-bottom { gap: 10px; padding: 8px 10px; }
   .stats .keys { display: none; }
   .gauge { width: 90px; height: 90px; }
   .gauge .speed b { font-size: 22px; }
-  .phone { right: 8px; bottom: 150px; width: 250px; height: 440px; }
+  .phone { right: 8px; top: auto; bottom: 150px; width: 250px; height: 400px; max-height: 400px; }
 }
