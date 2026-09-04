@@ -1,6 +1,6 @@
 /* 게임 모드 UI */
 body.game-on .legend, body.game-on .timeline, body.game-on .card, body.game-on .search, body.game-on .status { display: none !important; }
-body.game-on .rail:not(.bottom) .tbtn:not(#btnGame):not(#btnTheme):not(#btnBuildings) { display: none; }
+body.game-on .rail:not(.bottom) .tbtn:not(#btnGame):not(#btnTheme):not(#btnBuildings):not(#btnMusic) { display: none; }
 body.game-on .rail.bottom { display: none; }
 #game { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
 #game > * { pointer-events: auto; }

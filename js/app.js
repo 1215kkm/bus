@@ -3,17 +3,27 @@
   const G = window.SB_GEO, S = window.SB_SIM, TYPES = window.SB_ROUTE_TYPES, CITIES = window.SB_CITIES;
 
   /* ── 설정 ─────────────────────────────────────────── */
+  const THEMES = ['dark', 'sunset', 'light'];
+  const THEME_LABEL = { dark: '다크', sunset: '노을', light: '라이트' };
   const STYLE = {
     dark: 'https://tiles.openfreemap.org/styles/fiord',
+    sunset: 'https://tiles.openfreemap.org/styles/fiord',   // 어두운 바탕에 노을색을 덧입힘
     light: 'https://tiles.openfreemap.org/styles/positron',
   };
+  /* night 인 테마에서 가로등·차량 전조등이 켜집니다 */
+  const THEME_CFG = {
+    dark:   { night: true,  bg: '#1b2331', building: '#2a3140', buildingOpacity: 0.75, tint: null },
+    sunset: { night: true,  bg: '#2e2436', building: '#4a3a3f', buildingOpacity: 0.82, tint: { color: '#ff7a3c', opacity: 0.16 } },
+    light:  { night: false, bg: null,      building: '#d9dee6', buildingOpacity: 0.8,  tint: null },
+  };
+  const cfgOf = t => THEME_CFG[t] || THEME_CFG.dark;
   const RASTER_FALLBACK = theme => ({
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       carto: {
         type: 'raster', tileSize: 256, maxzoom: 19,
-        tiles: ['a', 'b', 'c', 'd'].map(s => `https://${s}.basemaps.cartocdn.com/${theme === 'dark' ? 'dark_all' : 'light_all'}/{z}/{x}/{y}.png`),
+        tiles: ['a', 'b', 'c', 'd'].map(s => `https://${s}.basemaps.cartocdn.com/${theme === 'light' ? 'light_all' : 'dark_all'}/{z}/{x}/{y}.png`),
         attribution: '© OpenStreetMap contributors © CARTO',
       },
     },
@@ -25,7 +35,7 @@
   let routes = [], routeById = {}, sim = new S.Simulation([]);
   const state = {
     city: (new URLSearchParams(location.search).get('city') in CITIES) ? new URLSearchParams(location.search).get('city') : (load('city', 'seoul') in CITIES ? load('city', 'seoul') : 'seoul'),
-    theme: load('theme', 'dark'),
+    theme: THEMES.includes(load('theme', 'dark')) ? load('theme', 'dark') : 'dark',
     hidden: new Set(),
     buildings: load('buildings', true),
     showStops: true,
@@ -57,7 +67,7 @@
 
   /* ── 지도 ─────────────────────────────────────────── */
   // 네트워크 없이 즉시 뜨는 빈 스타일로 시작 → 노선·버스는 바로 보이고, 배경 지도는 loadStyle 이 받아오는 대로 교체
-  const EMPTY_STYLE = { version: 8, glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf', sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': state.theme === 'dark' ? '#0b0f16' : '#e9edf3' } }] };
+  const EMPTY_STYLE = { version: 8, glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf', sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': state.theme === 'light' ? '#e9edf3' : '#0b0f16' } }] };
   const map = new maplibregl.Map({
     container: 'map',
     style: EMPTY_STYLE,
@@ -98,9 +108,16 @@
 
   function addOverlays() {
     const beforeLabels = firstSymbolLayer();
-    const dark = state.theme === 'dark';
+    const cfg = cfgOf(state.theme);
+    const dark = cfg.night;      // 노을도 어두운 계열이라 다크와 같은 대비를 씁니다
     // 다크 지도가 너무 어둡지 않게 배경을 한 단계 밝힘
-    if (dark) for (const l of map.getStyle().layers || []) if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#1b2331');
+    if (cfg.bg) for (const l of map.getStyle().layers || []) if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', cfg.bg);
+    // 노을: 지도 전체에 주황빛을 한 겹 덮음
+    if (cfg.tint) {
+      try {
+        map.addLayer({ id: 'sb-tint', type: 'background', paint: { 'background-color': cfg.tint.color, 'background-opacity': cfg.tint.opacity } }, beforeLabels);
+      } catch (e) { console.warn('노을 틴트 레이어를 넣지 못했습니다:', e.message); }
+    }
 
     // 3D 건물 (벡터 스타일일 때만)
     const styleSources = (map.getStyle() && map.getStyle().sources) || {};
@@ -110,10 +127,10 @@
         id: 'sb-buildings', type: 'fill-extrusion', source: vectorSrc, 'source-layer': 'building', minzoom: 13,
         layout: { visibility: state.buildings ? 'visible' : 'none' },
         paint: {
-          'fill-extrusion-color': dark ? '#2a3140' : '#d9dee6',
+          'fill-extrusion-color': cfg.building,
           'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 13, 0, 14.5, ['coalesce', ['get', 'render_height'], 12]],
           'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 13, 0, 14.5, ['coalesce', ['get', 'render_min_height'], 0]],
-          'fill-extrusion-opacity': dark ? 0.75 : 0.8,
+          'fill-extrusion-opacity': cfg.buildingOpacity,
           'fill-extrusion-vertical-gradient': true,
         },
       }, beforeLabels);
@@ -124,6 +141,8 @@
     map.addSource('sb-buses', { type: 'geojson', data: emptyFC() });
     map.addSource('sb-bus-pts', { type: 'geojson', data: emptyFC() });
     map.addSource('sb-focus', { type: 'geojson', data: emptyFC() });
+    map.addSource('sb-bus-lights', { type: 'geojson', data: emptyFC() });
+    if (window.SB_CITYLIGHTS) window.SB_CITYLIGHTS.add(beforeLabels);
 
     const dim = ['case', ['boolean', ['get', 'dim'], false], 0.18, 1];
     map.addLayer({
@@ -186,6 +205,22 @@
         'fill-extrusion-vertical-gradient': true,
       },
     });
+    // 차량 전조등 — 밤 테마에서만
+    map.addLayer({
+      id: 'sb-bus-light-cone', type: 'fill', source: 'sb-bus-lights',
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      layout: { visibility: dark ? 'visible' : 'none' },
+      paint: { 'fill-color': '#ffe6ad', 'fill-opacity': 0.17 },
+    }, 'sb-bus-body');
+    map.addLayer({
+      id: 'sb-bus-light-lamp', type: 'circle', source: 'sb-bus-lights',
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: { visibility: dark ? 'visible' : 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.2, 16, 3.4, 19, 7],
+        'circle-color': '#fff6dd', 'circle-blur': 0.5, 'circle-opacity': 0.95, 'circle-pitch-alignment': 'map',
+      },
+    }, 'sb-bus-body');
     map.addLayer({
       id: 'sb-bus-halo', type: 'circle', source: 'sb-bus-pts', filter: ['==', ['get', 'sel'], 1],
       paint: { 'circle-radius': 22, 'circle-color': '#ffffff', 'circle-opacity': 0.12, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map' },
@@ -256,12 +291,15 @@
   });
   map.on('dragstart', () => { if (state.follow) { state.follow = false; renderCard(); } });
 
-  // 마우스 휠 버튼(가운데 버튼) 드래그 → 좌우: 회전, 상하: 기울기
+  // 회전·기울이기 — 휠 버튼 드래그 · 우클릭 드래그 · Ctrl+드래그를 한 곳에서 처리.
+  // MapLibre 기본 회전은 꺼서 방향이 갈리지 않게 합니다(기본값은 여기와 반대 방향).
   (() => {
+    map.dragRotate.disable();
     const canvas = map.getCanvas();
     let drag = null;
+    const isRotate = e => e.button === 1 || e.button === 2 || (e.button === 0 && (e.ctrlKey || e.metaKey));
     canvas.addEventListener('mousedown', e => {
-      if (e.button !== 1) return;
+      if (!isRotate(e)) return;
       e.preventDefault();
       drag = { x: e.clientX, y: e.clientY, bearing: map.getBearing(), pitch: map.getPitch() };
       canvas.style.cursor = 'grabbing';
@@ -271,9 +309,13 @@
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       map.jumpTo({ bearing: drag.bearing + dx * 0.35, pitch: Math.max(0, Math.min(map.getMaxPitch(), drag.pitch - dy * 0.35)) });
     });
-    window.addEventListener('mouseup', e => { if (e.button === 1 && drag) { drag = null; canvas.style.cursor = ''; } });
+    window.addEventListener('mouseup', () => { if (drag) { drag = null; canvas.style.cursor = ''; } });
     canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
   })();
+
+  if (window.SB_SKY) { window.SB_SKY.init(map); window.SB_SKY.setTheme(state.theme); }
+  if (window.SB_CITYLIGHTS) window.SB_CITYLIGHTS.init(map, state.theme);
 
   /* ── 프레임 루프 ─────────────────────────────────── */
   let lastReal = performance.now(), lastBusPush = 0, lastUi = 0;
@@ -314,8 +356,10 @@
   function pushBuses() {
     const bodySrc = map.getSource('sb-buses'), ptSrc = map.getSource('sb-bus-pts');
     if (!bodySrc || !ptSrc) return;
+    const lightSrc = map.getSource('sb-bus-lights');
+    const night = cfgOf(state.theme).night;
     const zoom = map.getZoom();
-    const bodies = [], pts = [];
+    const bodies = [], pts = [], lights = [];
     const bounds = map.getBounds();
     const pad = 0.05;
     for (const bus of sim.buses) {
@@ -341,9 +385,27 @@
         geometry: { type: 'Polygon', coordinates: G.boxPolygon(lng, lat, heading, L * 0.82, W * 0.7) },
       });
       pts.push({ type: 'Feature', properties: { id: bus.id, num: r.num, color: r.color, sel: sel ? 1 : 0 }, geometry: { type: 'Point', coordinates: [lng, lat] } });
+      if (night && bus.state !== 'stop') {
+        // 앞머리에서 앞으로 퍼지는 빛 + 좌우 전조등 두 알
+        const nose = L * 0.5, reach = L * 2.6, spread = W * 1.9;
+        lights.push({
+          type: 'Feature', properties: {},
+          geometry: { type: 'Polygon', coordinates: [[
+            G.move(lng, lat, heading, nose, -W * 0.34),
+            G.move(lng, lat, heading, nose, W * 0.34),
+            G.move(lng, lat, heading, nose + reach, spread),
+            G.move(lng, lat, heading, nose + reach, -spread),
+            G.move(lng, lat, heading, nose, -W * 0.34),
+          ]] },
+        });
+        for (const side of [-1, 1]) {
+          lights.push({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: G.move(lng, lat, heading, nose, side * W * 0.34) } });
+        }
+      }
     }
     bodySrc.setData({ type: 'FeatureCollection', features: bodies });
     ptSrc.setData({ type: 'FeatureCollection', features: pts });
+    if (lightSrc) lightSrc.setData({ type: 'FeatureCollection', features: lights });
   }
 
   /* ── 선택 ────────────────────────────────────────── */
@@ -532,11 +594,14 @@
 
   /* ── 툴바 ────────────────────────────────────────── */
   $('btnSearch').onclick = () => el.q.focus();
-  el.btnTheme.onclick = () => setTheme(state.theme === 'dark' ? 'light' : 'dark');
+  el.btnTheme.onclick = () => setTheme(THEMES[(THEMES.indexOf(state.theme) + 1) % THEMES.length]);
   function setTheme(t) {
     state.theme = t; save('theme', t);
     document.documentElement.dataset.theme = t;
     state.styleReady = false;
+    if (window.SB_SKY) window.SB_SKY.setTheme(t);
+    if (window.SB_CITYLIGHTS) window.SB_CITYLIGHTS.setTheme(t);
+    toast(`${THEME_LABEL[t]} 모드`);
     loadStyle(t);
   }
   el.btnBuildings.onclick = () => {
@@ -551,7 +616,12 @@
     el.btnStops.classList.toggle('on', state.showStops);
     for (const id of ['sb-stops', 'sb-stop-labels']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', state.showStops ? 'visible' : 'none');
   };
-  el.btnLegend.onclick = () => { const open = el.legend.style.display !== 'none'; el.legend.style.display = open ? 'none' : ''; el.btnLegend.classList.toggle('on', !open); };
+  function setLegend(open) {
+    el.legend.style.display = open ? '' : 'none';
+    el.btnLegend.classList.toggle('on', open);
+  }
+  el.btnLegend.onclick = () => setLegend(el.legend.style.display === 'none');
+  $('legendClose').onclick = () => setLegend(false);
   $('btnFit').onclick = () => map.easeTo(Object.assign({ duration: 1200 }, HOME()));
   $('btnZoomIn').onclick = () => map.zoomIn();
   $('btnZoomOut').onclick = () => map.zoomOut();
@@ -616,6 +686,8 @@
     if (e.key === ' ') { e.preventDefault(); togglePlay(); }
     if (e.key === 'd' || e.key === 'D') el.btnTheme.click();
     if (e.key === 'b' || e.key === 'B') el.btnBuildings.click();
+    if (e.key === 'l' || e.key === 'L') el.btnLegend.click();
+    if (e.key === 'm' || e.key === 'M') { const b = $('btnMusic'); if (b) b.click(); }
     if (e.key === 'Escape') { el.help.classList.remove('open'); clearSelection(); }
   });
 

@@ -26,12 +26,27 @@
   --accent: #c5720a;
   --shadow: 0 10px 30px rgba(30, 40, 60, 0.18);
 }
+:root[data-theme="sunset"] {
+  --bg: #2a1f33;
+  --panel: rgba(48, 31, 45, 0.82);
+  --panel-solid: #3a2838;
+  --panel-border: rgba(255, 190, 150, 0.16);
+  --text: #ffeede;
+  --text-dim: #d6ac97;
+  --text-faint: #9c7969;
+  --accent: #ffab5e;
+  --live: #ff5f6d;
+  --shadow: 0 10px 30px rgba(24, 10, 22, 0.5);
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
 button { font-family: inherit; }
 #map { position: absolute; inset: 0; }
+/* 하늘(별·달·구름) — 지도 위, UI 아래 */
+/* canvas 는 대체 요소라 inset:0 만으로는 안 늘어나고 기본 300x150 이 됩니다 — 크기를 직접 지정 */
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
 #map canvas { outline: none; }
 
 .panel {
@@ -102,6 +117,8 @@ button { font-family: inherit; }
 .legend header b { color: var(--text); font-size: 13px; }
 .legend header .actions button { background: none; border: 0; color: var(--text-dim); font-size: 11px; cursor: pointer; padding: 2px 6px; }
 .legend header .actions button:hover { color: var(--text); }
+.legend header .close { background: none; border: 0; color: var(--text-faint); font-size: 13px; line-height: 1; cursor: pointer; padding: 3px 5px; border-radius: 7px; }
+.legend header .close:hover { color: var(--text); background: rgba(127, 127, 127, 0.16); }
 .legend .list { overflow-y: auto; padding: 0 8px 10px; }
 .legend .group { font-size: 11px; color: var(--text-faint); padding: 8px 8px 4px; display: flex; align-items: center; gap: 8px; }
 .legend .group::after { content: ""; flex: 1; height: 1px; background: var(--panel-border); }
@@ -191,4 +208,32 @@ button { font-family: inherit; }
   .brand { display: none; }
   .status { display: none; }
   .card { top: 130px; width: calc(100vw - 90px); max-height: 40vh; }
+}
+
+/* ── 배경음악 ─────────────────────────────────────── */
+.music { right: 70px; top: 16px; width: 264px; padding: 12px 14px 14px; display: grid; gap: 10px; z-index: 7; }
+.music .mrow { display: flex; align-items: center; gap: 10px; }
+.music .play { width: 38px; height: 38px; border-radius: 50%; flex: none; border: 1px solid var(--panel-border); background: rgba(127, 127, 127, 0.12); color: var(--text); font-size: 14px; cursor: pointer; }
+.music .play:hover { background: rgba(127, 127, 127, 0.24); }
+.music.playing .play { background: var(--accent); color: #1a1200; border-color: transparent; }
+.music .meta { flex: 1; min-width: 0; }
+.music .meta b { display: block; font-size: 13px; }
+.music .meta span { font-size: 11px; color: var(--text-dim); }
+.music .x { background: none; border: 0; color: var(--text-faint); font-size: 12px; cursor: pointer; }
+.music .x:hover { color: var(--text); }
+.music .eq { display: flex; align-items: flex-end; gap: 3px; height: 44px; }
+.music .eq i { flex: 1; height: 8%; border-radius: 2px; opacity: 0.9; background: linear-gradient(to top, var(--accent), #ff7aa2); }
+.music .vol input { flex: 1; accent-color: var(--accent); min-width: 0; }
+.music .vol span:last-child { font: 600 11px var(--mono); color: var(--text-dim); width: 22px; text-align: right; }
+.music .yt { font-size: 11px; color: var(--text-faint); text-decoration: none; }
+.music .yt:hover { color: var(--accent); }
+.music #ytHost { display: block; width: 100%; height: 132px; border: 0; border-radius: 10px; overflow: hidden; line-height: 0; background: rgba(127, 127, 127, 0.1); }
+
+/* 게임 모드에서는 오른쪽을 휴대폰이 쓰므로 왼쪽 미니맵 아래로 */
+body.game-on .music { right: auto; left: 16px; top: 232px; }
+
+@media (max-width: 900px) {
+  .music { right: 62px; width: 220px; }
+  .music #ytHost { height: 108px; }
+  body.game-on .music { display: none; }
 }
