@@ -659,12 +659,14 @@
     else if (k === 'escape') { if (game.phoneOpen) closePhone(); else stop(); }
   }
   function onWheel(e) {
-    if (!game.active || game.cam === 'free') return;
+    if (!game.active) return;
     e.preventDefault();
     const step = Math.sign(e.deltaY);
-    // 휠 = 시점 각도(위로 굴리면 눕는 시점 → 앞이 멀리 보임), Shift+휠 = 확대·축소
-    if (e.shiftKey) game.zoomOffset = clamp(game.zoomOffset - step * 0.15, -2.5, 1.5);
-    else game.pitchOffset = clamp(game.pitchOffset - step * 2.5, -45, 25);
+    // 자유 시점에서는 게임 카메라가 관여하지 않으니 지도를 직접 확대·축소
+    if (game.cam === 'free') return map.zoomTo(map.getZoom() - step * 0.3, { duration: 90 });
+    // 휠 = 확대·축소, Shift+휠 = 시점 각도
+    if (e.shiftKey) game.pitchOffset = clamp(game.pitchOffset - step * 2.5, -45, 25);
+    else game.zoomOffset = clamp(game.zoomOffset - step * 0.15, -3.5, 1.5);
   }
 
   /* ── 소리 (Web Audio 합성) ──────────────────────── */
@@ -768,7 +770,7 @@
         <div class="stats">
           <div class="money" id="gMoney">0원</div>
           <div class="count" id="gCount">0건 완료</div>
-          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · G 자동 주행 · 휠 시점 각도 · C 시점 <b id="gCam"></b></div>
+          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · G 자동 주행 · 휠 확대·축소 · Shift+휠 시점 각도 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
           <button id="gAutoBtn" title="자동 주행 (G) — 추천 경로로 알아서 갑니다">🧭</button>
