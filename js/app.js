@@ -298,9 +298,13 @@
     const canvas = map.getCanvas();
     let drag = null;
     const isRotate = e => e.button === 1 || e.button === 2 || (e.button === 0 && (e.ctrlKey || e.metaKey));
+    // 게임 중에는 게임 카메라가 매 프레임 bearing 을 덮어씁니다. 여기서 같이 만지면
+    // 지도는 그대로인데 하늘만 그 순간 값을 읽어 혼자 흔들립니다 — 자유 시점일 때만 허용.
+    const gameHoldsCamera = () => window.SB_GAME && window.SB_GAME.active && window.SB_GAME.game.cam !== 'free';
     canvas.addEventListener('mousedown', e => {
       if (!isRotate(e)) return;
       e.preventDefault();
+      if (gameHoldsCamera()) return;
       drag = { x: e.clientX, y: e.clientY, bearing: map.getBearing(), pitch: map.getPitch() };
       canvas.style.cursor = 'grabbing';
     });

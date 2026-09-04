@@ -89,6 +89,8 @@
   const NAMES = ['김민준', '이서연', '박지호', '최수아', '정도윤', '강하은', '조예준', '윤지우', '한서준', '오하린'];
   const AUTO_PITCH = 30;                          // 자동 주행 시 카메라 각도
   const AUTO_KMH = [30, 50, 80, 120, 160];        // 자동 주행 속도 후보 (차 최고속도를 넘지는 않음)
+  const BOOST_KMH = 1000;       // Shift 부스터 최고 속도
+  const BOOST_ACCEL = 6;        // 부스터 중 가속 배율
   const SPIN_DPS = [0, 1, 2, 4, 8];               // 자동 주행 중 카메라가 도는 속도 (도/초)
   const spinLabel = d => d ? `${d}°/s · ${Math.round(360 / d)}초에 한 바퀴` : '고정';
 
@@ -126,6 +128,21 @@
 
   function toggle() { game.active ? stop() : openSelect(); }
 
+  /** 지도 자체 조작(휠 확대·드래그 이동)은 자유 시점에서만. 다른 시점은 게임 카메라가 매 프레임 덮어씁니다 */
+  function setMapInteractive(on) {
+    for (const h of ['scrollZoom', 'dragPan']) {
+      if (map[h]) on ? map[h].enable() : map[h].disable();
+    }
+  }
+
+  function cycleCam() {
+    game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length];
+    game.zoomOffset = 0; game.pitchOffset = 0;
+    setMapInteractive(game.cam === 'free');
+    app.toast(`시점: ${CAM_LABEL[game.cam]}${game.cam === 'free' ? ' — 지도를 직접 움직일 수 있습니다' : ''}`);
+    updateHud(true);
+  }
+
   function openSelect() {
     ui.select.hidden = false;
     document.body.classList.add('game-select');
@@ -145,7 +162,7 @@
     game.active = true;
     document.body.classList.add('game-on');
     ui.root.hidden = false;
-    map.scrollZoom.disable();
+    setMapInteractive(false);
     addLayers();
     startAudio();
     initMinimap();
@@ -163,7 +180,7 @@
     game.active = false;
     document.body.classList.remove('game-on', 'game-select');
     ui.root.hidden = true; ui.select.hidden = true; ui.phone.hidden = true; game.phoneOpen = false;
-    map.scrollZoom.enable();
+    setMapInteractive(true);
     clearRequests(); clearMission(false);
     dropLayers();
     if (game.minimap) { game.minimap.remove(); game.minimap = null; }
@@ -226,7 +243,7 @@
     const now = performance.now();
     if (now - game.lastReqTick > 1000) { game.lastReqTick = now; spawnRequests(); refreshBubbles(); }
     // 30m 넘게 움직였거나 0.6초 지났으면 주변 건물을 다시 읽음
-    if (now - solid.at > 600 || dist({ lng: game.lng, lat: game.lat }, solid) > 30) refreshSolids();
+    if (now - solid.at > 120 && (now - solid.at > 600 || dist({ lng: game.lng, lat: game.lat }, solid) > 60)) refreshSolids();
     if (now - game.lastHud > 120) { game.lastHud = now; updateHud(); }
     if (game.minimap && game.minimap._sbReady) updateMinimap();
   }
@@ -338,6 +355,7 @@
       const m = game.mission;
       setGuide({ lng: game.lng, lat: game.lat }, m.stage === 'pickup' ? m.req.pickup : m.req.dest, true);
       game.cam = 'chase';
+      setMapInteractive(false);
       game.pitchOffset = AUTO_PITCH - CAM_SET.chase.pitch;    // 카메라를 AUTO_PITCH 로
       game.keys = {};
       game.orbit = 0;
@@ -354,29 +372,40 @@
 
   function physics(dt) {
     const s = game.spec, k = game.keys;
-    const max = s.maxKmh / 3.6;
-    if (k.up) game.speed += s.accel * dt;
+    const boosting = !!k.boost;
+    const normalMax = s.maxKmh / 3.6, boostMax = BOOST_KMH / 3.6;
+    const max = boosting ? boostMax : normalMax;
+    if (k.up) game.speed += s.accel * (boosting ? BOOST_ACCEL : 1) * dt;
     else if (k.down) {
       if (game.speed > 0.3) game.speed -= s.brake * dt;
-      else game.speed = Math.max(-max / 4, game.speed - s.accel * 0.6 * dt);
+      else game.speed = Math.max(-normalMax / 4, game.speed - s.accel * 0.6 * dt);
     } else {
-      const drag = 0.9 + 0.004 * game.speed * game.speed;
+      // 2차 저항이지만 상한을 둡니다 — 안 그러면 900km/h 에서 손 떼는 순간 1초 만에 섭니다
+      const drag = Math.min(0.9 + 0.004 * game.speed * game.speed, 30);
       game.speed -= Math.sign(game.speed) * Math.min(Math.abs(game.speed), drag * dt);
     }
     if (k.brake) game.speed -= Math.sign(game.speed) * Math.min(Math.abs(game.speed), s.brake * 1.6 * dt);
-    game.speed = Math.max(-max / 4, Math.min(max, game.speed));
+    game.speed = Math.max(-normalMax / 4, Math.min(max, game.speed));
+    // 부스터를 놓으면 원래 최고속도로 서서히 내려옴 (뚝 끊기지 않게)
+    if (!boosting && game.speed > normalMax) game.speed = Math.max(normalMax, game.speed - normalMax * 1.2 * dt);
+    game.boosting = boosting && game.speed > normalMax * 0.98;
     const steer = (k.left ? -1 : 0) + (k.right ? 1 : 0);
     if (steer && Math.abs(game.speed) > 0.2) {
       const eff = Math.min(1, Math.abs(game.speed) / 7) * (1 - 0.45 * Math.min(1, Math.abs(game.speed) / max));
       game.heading = (game.heading + steer * eff * s.turn * 57.3 * dt * (game.speed < 0 ? -1 : 1) + 360) % 360;
     }
     if (Math.abs(game.speed) > 0.01) {
-      const p = G.move(game.lng, game.lat, game.heading, game.speed * dt, 0);
-      // 차 앞끝(후진이면 뒤끝)이 건물 안으로 들어가려 하면 막는다
-      const nose = Math.sign(game.speed) * s.len * 0.5;
-      const probe = G.move(p[0], p[1], game.heading, nose, 0);
-      if (solid.polys.length && inSolid(probe[0], probe[1])) crash(game.speed);
-      else { game.lng = p[0]; game.lat = p[1]; }
+      const total = game.speed * dt;
+      // 1000km/h 면 한 프레임에 4.6m 를 갑니다. 통째로 옮기면 얇은 건물을 뚫고 지나가니 3m 씩 쪼갭니다
+      const steps = Math.max(1, Math.ceil(Math.abs(total) / 3));
+      const seg = total / steps;
+      const nose = Math.sign(seg) * s.len * 0.5;
+      for (let i = 0; i < steps; i++) {
+        const p = G.move(game.lng, game.lat, game.heading, seg, 0);
+        const probe = G.move(p[0], p[1], game.heading, nose, 0);
+        if (solid.polys.length && inSolid(probe[0], probe[1])) { crash(game.speed); break; }
+        game.lng = p[0]; game.lat = p[1];
+      }
     }
   }
 
@@ -653,8 +682,10 @@
   function updateHud(force) {
     const kmh = Math.round(Math.abs(game.speed) * 3.6);
     ui.speed.textContent = kmh;
-    ui.gear.textContent = game.speed < -0.2 ? 'R' : game.keys.brake ? 'P' : 'D';
-    ui.needle.style.transform = `rotate(${-120 + 240 * Math.min(1, kmh / game.spec.maxKmh)}deg)`;
+    ui.gear.textContent = game.boosting ? '⚡' : game.speed < -0.2 ? 'R' : game.keys.brake ? 'P' : 'D';
+    const gaugeMax = kmh > game.spec.maxKmh ? BOOST_KMH : game.spec.maxKmh;
+    ui.needle.style.transform = `rotate(${-120 + 240 * Math.min(1, kmh / gaugeMax)}deg)`;
+    ui.gauge.classList.toggle('boost', !!game.boosting);
     if (!force && !game.mission && !ui.mission.hidden) ui.mission.hidden = true;
     const m = game.mission;
     if (m) {
@@ -685,13 +716,14 @@
     if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
     const down = e.type === 'keydown';
     const k = e.key.toLowerCase();
-    const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake' }[k];
+    const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake', shift: 'boost' }[k];
     if (mapKey) {
-      if (down && game.auto) setAuto(false);            // 직접 조작하면 자동 주행 해제
+      // Shift 는 Shift+휠(시점 각도)에도 쓰이니 자동 주행을 끊지 않습니다
+      if (down && game.auto && mapKey !== 'boost') setAuto(false);
       game.keys[mapKey] = down; e.preventDefault(); return;
     }
     if (!down) return;
-    if (k === 'c') { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; game.pitchOffset = 0; app.toast(`시점: ${CAM_LABEL[game.cam]}`); updateHud(true); }
+    if (k === 'c') cycleCam();
     else if (k === 'h') { if (game.audio) game.audio.horn(game.key); }
     else if (k === 'm') { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); }
     else if (k === 'g') setAuto(!game.auto);
@@ -814,7 +846,7 @@
             <button id="gSpinBtn" title="자동 주행 중 카메라가 도는 속도">🔄 <b></b></button>
             <button id="gSpeedBtn" title="자동 주행 속도 (차 최고속도까지만)">⚡ <b></b></button>
           </div>
-          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · G 자동 주행 · 휠 확대·축소 · Shift+휠 시점 각도 · C 시점 <b id="gCam"></b></div>
+          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · <b>Shift 부스터</b> · G 자동 주행 · 휠 확대·축소 · Shift+휠 시점 각도 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
           <button id="gAutoBtn" title="자동 주행 (G) — 추천 경로로 알아서 갑니다">🧭</button>
@@ -851,6 +883,7 @@
       root, select: sel, mission: root.querySelector('#gMission'), minimap: root.querySelector('#minimap'), mmHeading: root.querySelector('#mmHeading'),
       vehName: root.querySelector('#gVeh'), speed: root.querySelector('#gSpeed'), gear: root.querySelector('#gGear'), needle: root.querySelector('#gNeedle'),
       money: root.querySelector('#gMoney'), count: root.querySelector('#gCount'), cam: root.querySelector('#gCam'),
+      gauge: root.querySelector('.gauge'),
       phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'), pending: root.querySelector('#pPending'),
       phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'), autoBtn: root.querySelector('#gAutoBtn'),
       spinBtn: root.querySelector('#gSpinBtn'), speedBtn: root.querySelector('#gSpeedBtn'),
@@ -870,7 +903,7 @@
     ui.phoneBtn.onclick = () => game.phoneOpen ? closePhone() : openPhone(game.sitting);
     ui.soundBtn.onclick = () => { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); };
     root.querySelector('#gHornBtn').onclick = () => { if (game.audio) game.audio.horn(game.key); };
-    root.querySelector('#gCamBtn').onclick = () => { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; game.pitchOffset = 0; updateHud(true); };
+    root.querySelector('#gCamBtn').onclick = cycleCam;
     root.querySelector('#gExitBtn').onclick = stop;
     root.querySelector('#pClose').onclick = closePhone;
     map.getCanvas().addEventListener('wheel', onWheel, { passive: false });

@@ -47,6 +47,10 @@ body.game-on .rail.bottom { display: none; }
 .gauge .speed b { font: 800 30px var(--mono); line-height: 1; display: block; }
 .gauge .speed span { font-size: 10px; color: var(--text-dim); }
 .gauge .gear { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font: 700 12px var(--mono); color: var(--accent); }
+/* 부스터 */
+.gauge.boost .dial { background: conic-gradient(from 210deg, #ff7a3c 0 66%, var(--live) 66% 66.7%, transparent 66.7%); filter: drop-shadow(0 0 10px rgba(255, 122, 60, 0.8)); }
+.gauge.boost .needle { background: #ff9a4d; box-shadow: 0 0 12px rgba(255, 154, 77, 0.95); }
+.gauge.boost .speed b { color: #ff9a4d; text-shadow: 0 0 14px rgba(255, 122, 60, 0.7); }
 .stats { display: flex; flex-direction: column; gap: 3px; min-width: 215px; }
 .stats .money { font: 800 22px var(--mono); }
 .stats .count { font-size: 12px; color: var(--text-dim); }
