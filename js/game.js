@@ -87,7 +87,7 @@
     tank: ['군수 물자', '훈련용 포탄 20발', '전차 부품', '비상 구호품', '야전 취사 장비'],
   };
   const NAMES = ['김민준', '이서연', '박지호', '최수아', '정도윤', '강하은', '조예준', '윤지우', '한서준', '오하린'];
-  const AUTO_PITCH = 45;                          // 자동 주행 시 카메라 각도
+  const AUTO_PITCH = 30;                          // 자동 주행 시 카메라 각도
   const AUTO_KMH = [30, 50, 80, 120, 160];        // 자동 주행 속도 후보 (차 최고속도를 넘지는 않음)
   const SPIN_DPS = [0, 1, 2, 4, 8];               // 자동 주행 중 카메라가 도는 속도 (도/초)
   const spinLabel = d => d ? `${d}°/s · ${Math.round(360 / d)}초에 한 바퀴` : '고정';
@@ -281,16 +281,35 @@
     }
   }
 
+  const guidePath = () => {
+    const f = game.guide && game.guide.fc && game.guide.fc.features[0];
+    return (f && f.geometry && f.geometry.coordinates) || null;
+  };
+
+  /** 지금 위치에서 가장 가까운 안내선 지점으로 따라갈 위치를 다시 잡음.
+   *  이걸 안 하면 경로 첫 점부터 따라가느라 왔던 길을 되돌아갑니다. */
+  function snapAutoIdx() {
+    const path = guidePath();
+    if (!path || !path.length) { game.autoIdx = 0; return; }
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < path.length; i++) {
+      const d = G.haversine([game.lng, game.lat], path[i]);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    game.autoIdx = best;
+  }
+
   /** 안내선을 따라 스스로 달림. 처리했으면 true (수동 물리를 건너뜀) */
   function autopilot(dt) {
     const m = game.mission;
     if (!game.auto || !m) return false;
     const target = m.stage === 'pickup' ? m.req.pickup : m.req.dest;
-    const f = game.guide && game.guide.fc && game.guide.fc.features[0];
-    const path = f && f.geometry && f.geometry.coordinates;
+    const path = guidePath();
     let aim = [target.lng, target.lat];
     if (path && path.length) {
       if (game.autoIdx >= path.length) game.autoIdx = path.length - 1;
+      // 따라가던 지점이 너무 멀어졌으면(경로가 새로 오거나 밀려났을 때) 가까운 곳으로 다시 잡음
+      if (G.haversine([game.lng, game.lat], path[game.autoIdx]) > 120) snapAutoIdx();
       // 이미 지난 점은 넘기고, 20m 앞의 점을 바라봄
       while (game.autoIdx < path.length - 1 && G.haversine([game.lng, game.lat], path[game.autoIdx]) < 20) game.autoIdx++;
       aim = path[game.autoIdx];
@@ -314,10 +333,12 @@
   function setAuto(on) {
     if (on && !game.mission) return app.toast('의뢰를 수락한 뒤에 쓸 수 있습니다');
     game.auto = on;
-    game.autoIdx = 0;
     if (on) {
+      snapAutoIdx();                                   // 경로 처음이 아니라 지금 위치에서 가장 가까운 곳부터
+      const m = game.mission;
+      setGuide({ lng: game.lng, lat: game.lat }, m.stage === 'pickup' ? m.req.pickup : m.req.dest, true);
       game.cam = 'chase';
-      game.pitchOffset = AUTO_PITCH - CAM_SET.chase.pitch;    // 카메라를 45도로
+      game.pitchOffset = AUTO_PITCH - CAM_SET.chase.pitch;    // 카메라를 AUTO_PITCH 로
       game.keys = {};
       game.orbit = 0;
       app.toast(`자동 주행 켜짐 — ${Math.round(autoKmh())}km/h · 카메라 ${spinLabel(SPIN_DPS[game.spinIdx])}`);
@@ -597,7 +618,7 @@
   }
   function applyGuide(g) {
     game.guide = g;
-    game.autoIdx = 0;
+    snapAutoIdx();
     const src = map.getSource('sb-game-guide'); if (src) src.setData(g.fc);
     if (game.minimap && game.minimap._sbReady) game.minimap.getSource('mm-guide').setData(g.fc);
   }
