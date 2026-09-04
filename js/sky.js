@@ -4,9 +4,9 @@
  * 지도를 기울이면(pitch) 하늘이 넓어지고, 좌우로 돌리면(bearing) 별·달·구름이
  * 같이 흘러가 하늘이 지도에 붙어 있는 것처럼 보입니다.
  *
- * 지평선 위치는 실제 카메라 계산 대신 pitch 에 비례한 근사값을 씁니다.
- * 정확한 값을 쓰면 pitch 70도 아래에서는 하늘이 거의 안 보여서, 기본 시점(58도)
- * 에서도 별과 달이 보이도록 일부러 조금 넉넉하게 잡았습니다.
+ * 하늘 높이는 MapLibre 가 실제로 지면 그리기를 멈추는 선(transform.getHorizon)에
+ * 정확히 맞춥니다. 그 아래는 진짜 도시가 그려지는 자리라 한 픽셀도 덮지 않습니다.
+ * 그래서 pitch 가 낮으면(기본 58도) 하늘이 아예 없고, 위로 기울일수록 넓어집니다.
  */
 (function () {
   const THEME = {
@@ -49,11 +49,19 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /** 화면에서 하늘이 차지하는 높이(px). pitch 가 클수록 넓어짐 */
+  /** 화면에서 하늘이 차지하는 높이(px) — 지면이 끝나는 선까지만 */
   function skyHeight() {
-    const p = map.getPitch();
-    const f = Math.max(0, Math.min(1, (p - 36) / 49));
-    return Math.pow(f, 0.8) * H * 0.46;
+    const t = map.transform;
+    let fromTop;
+    if (t && typeof t.getHorizon === 'function') {
+      fromTop = H / 2 - t.getHorizon();
+    } else {
+      // getHorizon 이 없는 버전 대비 — MapLibre 와 같은 식으로 직접 계산
+      const fovDeg = (t && typeof t.fov === 'number') ? t.fov : 36.87;
+      const c2c = 0.5 / Math.tan(fovDeg / 2 * Math.PI / 180) * H;
+      fromTop = H / 2 - Math.tan(Math.PI / 2 - map.getPitch() * Math.PI / 180) * c2c * 0.85;
+    }
+    return Math.max(0, Math.min(H * 0.5, fromTop * 0.98));   // 0.98 은 경계선 겹침 여유
   }
 
   /** bearing 에 따라 하늘이 흘러가는 가로 오프셋. 한 바퀴 돌면 화면 두 폭만큼 흐름 */
@@ -88,12 +96,12 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, sky);
     // 지평선 쪽 페이드
-    const fade = ctx.createLinearGradient(0, sky * 0.55, 0, sky);
+    const fade = ctx.createLinearGradient(0, sky * 0.6, 0, sky);
     fade.addColorStop(0, 'rgba(0,0,0,0)');
     fade.addColorStop(1, 'rgba(0,0,0,1)');
     ctx.globalCompositeOperation = 'destination-out';
     ctx.fillStyle = fade;
-    ctx.fillRect(0, sky * 0.55, W, sky * 0.45);
+    ctx.fillRect(0, sky * 0.6, W, sky * 0.4);
     ctx.restore();
 
     ctx.save();

@@ -601,7 +601,9 @@
     state.styleReady = false;
     if (window.SB_SKY) window.SB_SKY.setTheme(t);
     if (window.SB_CITYLIGHTS) window.SB_CITYLIGHTS.setTheme(t);
-    toast(`${THEME_LABEL[t]} 모드`);
+    // 하늘은 지면이 끝나는 선 위에만 그려집니다 — 덜 기울인 상태면 아예 안 보이니 알려 줍니다
+    const noSkyYet = cfgOf(t).night && map.getPitch() < 68;
+    toast(`${THEME_LABEL[t]} 모드${noSkyYet ? ' — 위로 더 기울이면(휠 버튼 드래그) 밤하늘이 나옵니다' : ''}`);
     loadStyle(t);
   }
   el.btnBuildings.onclick = () => {
