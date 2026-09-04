@@ -108,6 +108,35 @@
     return best;
   }
 
+  /** 점이 다각형(Polygon / MultiPolygon) 안에 있는지 — 건물 충돌 판정용 */
+  function pointInPolygon(lng, lat, geom) {
+    if (!geom) return false;
+    const polys = geom.type === 'MultiPolygon' ? geom.coordinates : geom.type === 'Polygon' ? [geom.coordinates] : [];
+    for (const rings of polys) {
+      if (!rings.length || !inRing(lng, lat, rings[0])) continue;
+      let inHole = false;
+      for (let i = 1; i < rings.length; i++) if (inRing(lng, lat, rings[i])) { inHole = true; break; }
+      if (!inHole) return true;
+    }
+    return false;
+  }
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  /** 다각형의 대략적인 중심 (잔해·먼지 위치용) */
+  function polyCenter(geom) {
+    const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+    let sx = 0, sy = 0, n = 0;
+    for (const rings of polys) for (const [x, y] of rings[0]) { sx += x; sy += y; n++; }
+    return n ? [sx / n, sy / n] : [0, 0];
+  }
+
   function bboxOf(route) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const [x, y] of route.pts) {
@@ -117,5 +146,5 @@
     return [[minX, minY], [maxX, maxY]];
   }
 
-  window.SB_GEO = { haversine, bearing, prepareRoute, pointAt, offset, move, boxPolygon, metersPerPixel, snapToRoute, bboxOf };
+  window.SB_GEO = { haversine, bearing, prepareRoute, pointAt, offset, move, boxPolygon, metersPerPixel, snapToRoute, bboxOf, pointInPolygon, polyCenter };
 })();

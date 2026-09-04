@@ -12,12 +12,18 @@
 
   /* ── 탈것 ─────────────────────────────────────────── */
   const VEHICLES = {
-    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 95,  accel: 6.5, brake: 10, turn: 2.8, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70,  range: 6, desc: '빠르고 골목에 강함. 작은 배달 전문' },
-    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 200, accel: 9.5, brake: 13, turn: 2.0, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55,  range: 7, desc: '최고 속도. 빠른 배달 보너스가 큼' },
-    bus:   { name: '버스',     emoji: '🚌', maxKmh: 75,  accel: 2.4, brake: 6,  turn: 1.2, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38,  range: 4, desc: '단체 승객 이동 의뢰. 보수가 높음' },
-    truck: { name: '트럭',     emoji: '🚚', maxKmh: 100, accel: 3.2, brake: 7,  turn: 1.4, len: 8,   wid: 2.4, hgt: 3.0, color: '#7bd3c8', reward: 1.5, radius: 3000, wave: 'sawtooth', base: 42,  range: 4, desc: '이삿짐·가전 같은 큰 짐' },
-    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 80,  accel: 2.6, brake: 6,  turn: 1.1, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34,  range: 3.5, desc: '건설 자재 운반. 느리지만 보수 최고' },
+    bike:  { name: '오토바이', emoji: '🏍️', maxKmh: 260, accel: 22, brake: 16, turn: 3.2, len: 2.2, wid: 0.9, hgt: 1.3, color: '#ff5c8a', reward: 1.0, radius: 1500, wave: 'square',   base: 70, range: 6,
+             armor: 22,  smashKmh: 0,   crush: 0,   desc: '가장 민첩. 벽에 부딪히면 크게 튕겨 나감' },
+    sport: { name: '스포츠카', emoji: '🏎️', maxKmh: 480, accel: 34, brake: 22, turn: 2.3, len: 4.5, wid: 1.9, hgt: 1.2, color: '#ffd166', reward: 1.2, radius: 2500, wave: 'sawtooth', base: 55, range: 7,
+             armor: 34,  smashKmh: 0,   crush: 0,   desc: '압도적인 최고 속도. 신속 보너스에 유리' },
+    bus:   { name: '버스',     emoji: '🚌', maxKmh: 210, accel: 12, brake: 11, turn: 1.5, len: 11,  wid: 2.5, hgt: 3.4, color: '#4f7de8', reward: 1.6, radius: 3000, wave: 'sawtooth', base: 38, range: 4,
+             armor: 78,  smashKmh: 150, crush: 22,  desc: '단체 승객 이동. 아주 빠르면 벽도 뚫음' },
+    truck: { name: '트럭',     emoji: '🚚', maxKmh: 240, accel: 15, brake: 12, turn: 1.7, len: 8,   wid: 2.4, hgt: 3.0, color: '#7bd3c8', reward: 1.5, radius: 3000, wave: 'sawtooth', base: 42, range: 4,
+             armor: 88,  smashKmh: 90,  crush: 40,  desc: '큰 짐 운반. 웬만한 건물은 밀고 지나감' },
+    dump:  { name: '덤프트럭', emoji: '🚛', maxKmh: 200, accel: 13, brake: 10, turn: 1.4, len: 9,   wid: 2.6, hgt: 3.5, color: '#f39c3d', reward: 1.8, radius: 3500, wave: 'triangle', base: 34, range: 3.5,
+             armor: 130, smashKmh: 45,  crush: 100, desc: '철거 전문. 낮은 속도에도 건물이 무너짐' },
   };
+  const NITRO_MAX = 100, NITRO_DRAIN = 34, NITRO_FILL = 11;
   const ITEMS = {
     bike: ['치킨', '떡볶이 세트', '아이스 아메리카노 4잔', '꽃다발', '서류 봉투', '약 봉투', '케이크'],
     sport: ['긴급 서류', '결혼반지', '생일 케이크', '한정판 운동화', 'VIP 도시락'],
@@ -36,6 +42,10 @@
     keys: {}, money: 0, done: 0, failed: 0, requests: [], mission: null, guide: null,
     sound: true, audio: null, minimap: null, markers: new Map(), lastReqTick: 0, lastHud: 0,
     phoneOpen: false, thread: [], typing: null, unread: 0, sitting: null,
+    // 충돌 · 파괴
+    ghost: false, boosting: false, damage: 0, crashes: 0, smashed: 0, combo: 0, comboAt: 0,
+    hitCool: 0, shake: 0, nitro: NITRO_MAX, wrecked: 0,
+    destroyed: new Set(), hiddenIds: [], rubble: [], particles: [],
   };
   let app, map, ui = {};
 
@@ -65,6 +75,9 @@
     game.lng = c.lng; game.lat = c.lat; game.heading = map.getBearing(); game.camBearing = game.heading;
     game.speed = 0; game.cam = 'chase'; game.zoomOffset = 0; game.mission = null; game.guide = null; game.sitting = null;
     game.thread = []; game.unread = 0;
+    game.ghost = false; game.damage = 0; game.crashes = 0; game.smashed = 0; game.combo = 0;
+    game.hitCool = 0; game.shake = 0; game.nitro = NITRO_MAX; game.wrecked = 0;
+    game.destroyed = new Set(); game.hiddenIds = []; game.rubble = []; game.particles = []; game.prevNose = null;
     game.active = true;
     document.body.classList.add('game-on');
     ui.root.hidden = false;
@@ -75,6 +88,7 @@
     ui.vehName.textContent = `${game.spec.emoji} ${game.spec.name}`;
     updateHud(true);
     pushMsg('sys', `${game.spec.name} 운전을 시작합니다. 근처 의뢰 말풍선을 클릭하면 문자로 상세 내용이 옵니다.`);
+    if (game.spec.crush) pushMsg('sys', `${game.spec.smashKmh}km/h 이상으로 건물을 들이받으면 건물이 무너지고 철거 수당이 붙습니다.`);
     app.toast(`게임 모드 · ${game.spec.name} — W/A/S/D 로 운전, C 로 시점 전환, Esc 로 종료`);
     map.easeTo({ center: [game.lng, game.lat], zoom: CAM_SET.chase.zoom, pitch: CAM_SET.chase.pitch, bearing: game.heading, duration: 1600 });
   }
@@ -85,8 +99,10 @@
     ui.root.hidden = true; ui.select.hidden = true; ui.phone.hidden = true; game.phoneOpen = false;
     map.scrollZoom.enable();
     clearRequests(); clearMission(false);
-    for (const id of ['sb-game-veh', 'sb-game-guide']) if (map.getLayer(id)) map.removeLayer(id);
-    for (const id of ['sb-game-veh', 'sb-game-guide']) if (map.getSource(id)) map.removeSource(id);
+    game.hiddenIds = []; applyBuildingFilter();
+    const own = ['sb-game-veh', 'sb-game-guide', 'sb-game-rubble', 'sb-game-debris'];
+    for (const id of own) if (map.getLayer(id)) map.removeLayer(id);
+    for (const id of own) if (map.getSource(id)) map.removeSource(id);
     if (game.minimap) { game.minimap.remove(); game.minimap = null; }
     stopAudio();
     map.easeTo({ pitch: 58, zoom: Math.min(map.getZoom(), 15), duration: 1200 });
@@ -103,11 +119,23 @@
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#ffb547', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 16, 7, 19, 12], 'line-opacity': 0.85, 'line-dasharray': [1.2, 1.4] },
     });
+    map.addSource('sb-game-rubble', { type: 'geojson', data: empty() });
+    map.addSource('sb-game-debris', { type: 'geojson', data: empty() });
+    map.addLayer({
+      id: 'sb-game-rubble', type: 'fill-extrusion', source: 'sb-game-rubble',
+      paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.95 },
+    });
     map.addLayer({
       id: 'sb-game-veh', type: 'fill-extrusion', source: 'sb-game-veh',
       paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 0.98, 'fill-extrusion-vertical-gradient': true },
     });
+    map.addLayer({
+      id: 'sb-game-debris', type: 'circle', source: 'sb-game-debris',
+      paint: { 'circle-radius': ['get', 'r'], 'circle-color': ['get', 'color'], 'circle-opacity': ['get', 'o'], 'circle-blur': ['get', 'blur'], 'circle-pitch-alignment': 'map' },
+    });
     if (game.guide) map.getSource('sb-game-guide').setData(game.guide.fc);
+    applyBuildingFilter();
+    refreshRubble();
   }
   const empty = () => ({ type: 'FeatureCollection', features: [] });
 
@@ -115,6 +143,8 @@
   function tick(dt) {
     if (!game.active) return;
     physics(dt);
+    collision(dt);
+    particles(dt);
     camera(dt);
     render();
     missions(dt);
@@ -127,8 +157,11 @@
 
   function physics(dt) {
     const s = game.spec, k = game.keys;
-    const max = s.maxKmh / 3.6;
-    if (k.up) game.speed += s.accel * dt;
+    const boosting = !!k.boost && !!k.up && game.nitro > 0 && game.speed > 1;
+    game.nitro = Math.max(0, Math.min(NITRO_MAX, game.nitro + (boosting ? -NITRO_DRAIN : NITRO_FILL) * dt));
+    game.boosting = boosting;
+    const max = s.maxKmh / 3.6 * (boosting ? 1.35 : 1);
+    if (k.up) game.speed += s.accel * (boosting ? 1.9 : 1) * dt;
     else if (k.down) {
       if (game.speed > 0.3) game.speed -= s.brake * dt;
       else game.speed = Math.max(-max / 4, game.speed - s.accel * 0.6 * dt);
@@ -138,6 +171,7 @@
     }
     if (k.brake) game.speed -= Math.sign(game.speed) * Math.min(Math.abs(game.speed), s.brake * 1.6 * dt);
     game.speed = Math.max(-max / 4, Math.min(max, game.speed));
+    if (game.wrecked > 0) { game.wrecked -= dt; game.speed *= 0.86; }
     const steer = (k.left ? -1 : 0) + (k.right ? 1 : 0);
     if (steer && Math.abs(game.speed) > 0.2) {
       const eff = Math.min(1, Math.abs(game.speed) / 7) * (1 - 0.45 * Math.min(1, Math.abs(game.speed) / max));
@@ -150,13 +184,23 @@
   }
 
   function camera(dt) {
+    if (game.shake > 0) game.shake = Math.max(0, game.shake - dt * 2.4);
     if (game.cam === 'free') return;
     const c = CAM_SET[game.cam];
     const k = 1 - Math.exp(-dt * (game.cam === 'driver' ? 10 : 5));
-    let diff = ((game.heading - game.camBearing + 540) % 360) - 180;
+    const diff = ((game.heading - game.camBearing + 540) % 360) - 180;
     game.camBearing = (game.camBearing + diff * k + 360) % 360;
-    const center = G.move(game.lng, game.lat, game.heading, c.ahead, 0);
-    map.jumpTo({ center, bearing: game.camBearing, pitch: c.pitch, zoom: c.zoom + game.zoomOffset });
+    // 빠를수록 카메라가 뒤로 물러나 시야를 넓힘
+    const ratio = Math.min(1, Math.abs(game.speed) / (game.spec.maxKmh / 3.6));
+    let center = G.move(game.lng, game.lat, game.heading, c.ahead * (1 + ratio * 0.9), 0);
+    let bearing = game.camBearing, pitch = c.pitch;
+    if (game.shake > 0) {
+      const m = game.shake * game.shake * 26;
+      center = G.offset(center[0], center[1], (Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+      bearing += (Math.random() - 0.5) * game.shake * 9;
+      pitch = Math.max(0, Math.min(85, pitch + (Math.random() - 0.5) * game.shake * 7));
+    }
+    map.jumpTo({ center, bearing, pitch, zoom: c.zoom + game.zoomOffset - ratio * 0.85 });
   }
 
   function render() {
@@ -183,6 +227,203 @@
       feats.push({ type: 'Feature', properties: { color: game.key === 'dump' ? '#8a6d3b' : '#c9d3dd', h: H * (game.key === 'dump' ? 1.25 : 1.1), b: H * 0.45 }, geometry: { type: 'Polygon', coordinates: G.boxPolygon(bed[0], bed[1], game.heading, L * 0.56, W * 1.02) } });
     }
     src.setData({ type: 'FeatureCollection', features: feats });
+  }
+
+  /* ── 충돌 · 파괴 ─────────────────────────────────── */
+  const HIT_WORDS = ['쿵!', '쾅!', '으악!', '깡!'];
+  const SMASH_WORDS = ['쾅!!', '와장창!!', '박살!!', '무너진다!!'];
+
+  /** 차 앞머리가 건물 안에 들어갔는지 검사 */
+  function collision(dt) {
+    game.hitCool -= dt;
+    if (game.ghost || game.hitCool > 0) return;
+    if (!map.getLayer('sb-buildings') || map.getLayoutProperty('sb-buildings', 'visibility') === 'none') return;
+    const spd = Math.abs(game.speed);
+    if (spd < 2.2) return;
+    const s = game.spec;
+    const fwd = s.len * 0.55 * (game.speed < 0 ? -1 : 1);
+    const nose = G.move(game.lng, game.lat, game.heading, fwd, 0);
+    const prev = game.prevNose || nose;
+    game.prevNose = nose;
+
+    let a, b;
+    try { a = map.project(prev); b = map.project(nose); } catch (_) { return; }
+    if (!a || !b || !isFinite(a.x) || !isFinite(b.x)) return;
+    const pad = 34;
+    const box = [[Math.min(a.x, b.x) - pad, Math.min(a.y, b.y) - pad], [Math.max(a.x, b.x) + pad, Math.max(a.y, b.y) + pad]];
+    if (box[1][0] < -300 || box[1][1] < -300 || box[0][0] > innerWidth + 300 || box[0][1] > innerHeight + 300) return;
+    if (box[1][0] - box[0][0] > 1600 || box[1][1] - box[0][1] > 1600) return;   // 순간이동 등 비정상 구간은 건너뜀
+    let cands;
+    try { cands = map.queryRenderedFeatures(box, { layers: ['sb-buildings'] }); }
+    catch (_) { return; }
+    if (!cands || !cands.length) return;
+
+    // 한 프레임에 벽을 지나쳐 버리지 않도록 이동 구간을 나눠 검사한다
+    const travel = G.haversine(prev, nose);
+    const steps = Math.max(1, Math.min(6, Math.ceil(travel / 3)));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const p = [prev[0] + (nose[0] - prev[0]) * t, prev[1] + (nose[1] - prev[1]) * t];
+      // 이미 부순 건물은 그대로 통과 (id 가 없어 숨기지 못한 건물도 다시 막지 않도록)
+      const hit = cands.find(f => f.geometry && !game.destroyed.has(featKey(f)) && G.pointInPolygon(p[0], p[1], f.geometry));
+      if (hit) { impact(hit, spd, p); return; }
+    }
+  }
+
+  function featKey(f) {
+    if (f.id != null) return 'i' + f.id;
+    const c = G.polyCenter(f.geometry);
+    return 'c' + c[0].toFixed(6) + ',' + c[1].toFixed(6);
+  }
+
+  function impact(feat, spd, nose) {
+    const s = game.spec;
+    const kmh = spd * 3.6;
+    const key = featKey(feat);
+    const height = Number(feat.properties && (feat.properties.render_height || feat.properties.height)) || 12;
+    // 건물이 클수록 부수기 어려움
+    const needed = s.smashKmh * (1 + Math.max(0, height - 12) / 55);
+    const canSmash = s.crush > 0 && kmh >= needed;
+    game.hitCool = canSmash ? 0.18 : 0.45;
+    game.shake = Math.min(1.5, (canSmash ? 0.55 : 0.75) + kmh / 320);
+    flash(canSmash ? 'smash' : 'hit');
+
+    if (canSmash) {
+      game.destroyed.add(key);
+      demolish(feat, key, height);
+      game.smashed++;
+      const now = performance.now();
+      game.combo = now - game.comboAt < 6000 ? game.combo + 1 : 1;
+      game.comboAt = now;
+      const pay = Math.round((1200 + height * 60) * (1 + (game.combo - 1) * 0.5) / 100) * 100;
+      game.money += pay;
+      game.damage = Math.min(100, game.damage + Math.max(2, 14 - s.crush / 10));
+      game.speed *= 0.55;                                    // 밀고 지나가되 속도는 깎임
+      floatText(`${SMASH_WORDS[Math.floor(Math.random() * SMASH_WORDS.length)]} 철거 수당 +${pay.toLocaleString()}원${game.combo > 1 ? `  ${game.combo}연쇄!` : ''}`, 'smash');
+      if (game.audio) game.audio.crash(1, true);
+      app.toast(`🏗️ 건물 철거 · +${pay.toLocaleString()}원${game.combo > 1 ? ` (${game.combo}연쇄)` : ''}`);
+    } else {
+      game.crashes++;
+      game.combo = 0;
+      const dmg = Math.min(60, kmh * kmh / (s.armor * 12));
+      game.damage = Math.min(100, game.damage + dmg);
+      // 튕겨 나오기: 건물 밖으로 밀어내고 반대 방향으로 반동
+      const back = G.move(game.lng, game.lat, game.heading, -Math.sign(game.speed) * (s.len * 0.9 + 3), 0);
+      game.lng = back[0]; game.lat = back[1];
+      game.speed = -game.speed * (0.18 + Math.min(0.3, s.armor / 400));
+      game.heading = (game.heading + (Math.random() - 0.5) * 26 + 360) % 360;
+      game.wrecked = 0.35;
+      spawnDebris(nose, Math.min(1, kmh / 160), '#ffd9a0');
+      floatText(HIT_WORDS[Math.floor(Math.random() * HIT_WORDS.length)] + `  -${Math.round(dmg)}%`, 'hit');
+      if (game.audio) game.audio.crash(Math.min(1, kmh / 180), false);
+      if (game.damage >= 100) wreck();
+    }
+    updateHud(true);
+  }
+
+  function wreck() {
+    const fee = 5000;
+    game.money = Math.max(0, game.money - fee);
+    game.damage = 0; game.speed = 0; game.wrecked = 1.4; game.combo = 0;
+    floatText(`💥 완파 · 견인 수리비 -${fee.toLocaleString()}원`, 'hit');
+    app.toast('차량이 완파되어 현장에서 수리했습니다 · -5,000원');
+    pushMsg('sys', '차량이 완파되어 견인·수리했습니다. 수리비 5,000원이 빠졌어요.');
+    if (game.audio) game.audio.crash(1, true);
+  }
+
+  /** 건물 숨기고 잔해 더미로 교체 */
+  function demolish(feat, key, height) {
+    if (feat.id != null && !game.hiddenIds.includes(feat.id)) { game.hiddenIds.push(feat.id); applyBuildingFilter(); }
+    game.rubble.push({ geom: feat.geometry, h0: height, h1: Math.max(1.5, height * 0.16), t: 0 });
+    refreshRubble();
+    const c = G.polyCenter(feat.geometry);
+    spawnDebris(c, 1, '#b9c2cc', 26);
+    spawnDebris(nudge(c), 0.8, '#8d97a3', 14);
+  }
+  function nudge(c) { return G.offset(c[0], c[1], (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12); }
+
+  function applyBuildingFilter() {
+    if (!map.getLayer('sb-buildings')) return;
+    try { map.setFilter('sb-buildings', game.hiddenIds.length ? ['!', ['in', ['id'], ['literal', game.hiddenIds]]] : null); }
+    catch (e) { console.warn('[game] 건물 숨김 실패', e.message); }
+  }
+
+  function refreshRubble() {
+    const src = map.getSource('sb-game-rubble'); if (!src) return;
+    src.setData({
+      type: 'FeatureCollection',
+      features: game.rubble.map(r => ({
+        type: 'Feature',
+        properties: { h: r.h1 + (r.h0 - r.h1) * Math.max(0, 1 - r.t), color: r.t < 1 ? '#6b7280' : '#565f6b' },
+        geometry: r.geom,
+      })),
+    });
+  }
+
+  /* ── 파편 · 먼지 ─────────────────────────────────── */
+  function spawnDebris(at, power, color, count) {
+    const n = Math.round((count || 16) * (0.5 + power));
+    for (let i = 0; i < n; i++) {
+      const dir = Math.random() * 360;
+      const sp = (3 + Math.random() * 16) * (0.4 + power);
+      game.particles.push({
+        lng: at[0], lat: at[1], dir, sp, z: 1 + Math.random() * 4,
+        vz: 3 + Math.random() * 9 * power, life: 1, size: 2 + Math.random() * 5, color,
+      });
+    }
+    if (game.particles.length > 400) game.particles.splice(0, game.particles.length - 400);
+  }
+
+  function particles(dt) {
+    if (!game.particles.length) {
+      if (game.rubbleAnim) stepRubble(dt);
+      return;
+    }
+    const alive = [];
+    for (const p of game.particles) {
+      p.life -= dt * 0.85;
+      if (p.life <= 0) continue;
+      p.vz -= 22 * dt;
+      p.z = Math.max(0, p.z + p.vz * dt);
+      if (p.z <= 0) { p.vz = -p.vz * 0.35; p.sp *= 0.55; }
+      p.sp *= (1 - dt * 1.6);
+      const np = G.move(p.lng, p.lat, p.dir, p.sp * dt, 0);
+      p.lng = np[0]; p.lat = np[1];
+      alive.push(p);
+    }
+    game.particles = alive;
+    const src = map.getSource('sb-game-debris');
+    if (src) src.setData({
+      type: 'FeatureCollection',
+      features: alive.map(p => ({
+        type: 'Feature',
+        properties: { r: p.size * (0.6 + p.z / 14), o: Math.min(0.9, p.life), color: p.color, blur: p.z > 6 ? 0.6 : 0.1 },
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      })),
+    });
+    stepRubble(dt);
+  }
+
+  function stepRubble(dt) {
+    let animating = false;
+    for (const r of game.rubble) if (r.t < 1) { r.t = Math.min(1, r.t + dt * 1.6); animating = true; }
+    game.rubbleAnim = animating;
+    if (animating) refreshRubble();
+  }
+
+  /* ── 화면 효과 ───────────────────────────────────── */
+  let flashTimer;
+  function flash(kind) {
+    ui.flash.className = 'flash ' + kind;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { ui.flash.className = 'flash'; }, kind === 'smash' ? 320 : 200);
+  }
+  function floatText(text, kind) {
+    const el = document.createElement('div');
+    el.className = 'float-text ' + kind;
+    el.textContent = text;
+    ui.floats.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
   }
 
   /* ── 의뢰 ────────────────────────────────────────── */
@@ -396,7 +637,13 @@
       ui.mission.innerHTML = `<span class="stage">${m.stage === 'pickup' ? '📦 픽업하러 가는 중' : '🏁 배달 중'}</span><b>${target.name}</b><span class="d">${fmtDist(d)}${game.guide && game.guide.osrm ? ' 도로 기준' : ' 직선'}</span><span class="t ${left < 30 ? 'warn' : ''}">⏱ ${fmtTime(left)}</span>`;
     } else if (force) ui.mission.hidden = true;
     ui.money.textContent = game.money.toLocaleString() + '원';
-    ui.count.textContent = `${game.done}건 완료${game.failed ? ' · ' + game.failed + '건 실패' : ''}`;
+    ui.count.textContent = `${game.done}건 완료${game.failed ? ' · ' + game.failed + '건 실패' : ''}` +
+      (game.smashed ? ` · 🏗️ ${game.smashed}채 철거` : '') + (game.crashes ? ` · 💥 ${game.crashes}회 충돌` : '');
+    ui.dmgBar.style.width = game.damage + '%';
+    ui.dmgBar.classList.toggle('crit', game.damage > 70);
+    ui.nitroBar.style.width = game.nitro + '%';
+    ui.nitroBar.classList.toggle('boost', !!game.boosting);
+    ui.ghostBtn.classList.toggle('on', game.ghost);
     ui.cam.textContent = CAM_LABEL[game.cam];
     ui.phoneBtn.dataset.unread = game.unread || '';
     ui.soundBtn.textContent = game.sound ? '🔊' : '🔇';
@@ -411,13 +658,15 @@
     if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
     const down = e.type === 'keydown';
     const k = e.key.toLowerCase();
-    const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake' }[k];
+    const mapKey = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right', ' ': 'brake', shift: 'boost' }[k];
     if (mapKey) { game.keys[mapKey] = down; e.preventDefault(); return; }
     if (!down) return;
     if (k === 'c') { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; app.toast(`시점: ${CAM_LABEL[game.cam]}`); updateHud(true); }
     else if (k === 'h') { if (game.audio) game.audio.horn(game.key); }
     else if (k === 'm') { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); }
     else if (k === 'p') { game.phoneOpen ? closePhone() : openPhone(game.sitting); }
+    else if (k === 'g') { toggleGhost(); }
+    else if (k === 'r') { game.damage = 0; game.speed = 0; updateHud(true); app.toast('차량을 수리했습니다'); }
     else if (k === 'escape') { if (game.phoneOpen) closePhone(); else stop(); }
   }
   function onWheel(e) {
@@ -492,6 +741,28 @@
         o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.6);
       });
     }
+    /** 충돌음: 노이즈 파열 + 저역 쿵 (heavy 면 콘크리트 무너지는 저음 추가) */
+    crash(power, heavy) {
+      const t = this.ctx.currentTime;
+      const dur = heavy ? 1.1 : 0.5;
+      const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * dur), this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, heavy ? 1.4 : 2.4);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = heavy ? 'lowpass' : 'bandpass';
+      bp.frequency.value = heavy ? 700 : 900 + power * 1600;
+      bp.Q.value = heavy ? 1 : 0.7;
+      const g = this.ctx.createGain(); g.gain.value = Math.min(0.55, 0.14 + power * 0.4);
+      src.connect(bp); bp.connect(g); g.connect(this.master); src.start(t);
+      const o = this.ctx.createOscillator(), og = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(heavy ? 110 : 150, t);
+      o.frequency.exponentialRampToValueAtTime(heavy ? 26 : 40, t + (heavy ? 0.6 : 0.32));
+      og.gain.setValueAtTime(Math.min(0.6, 0.22 + power * 0.42), t);
+      og.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(og); og.connect(this.master); o.start(t); o.stop(t + dur + 0.05);
+    }
     ping() { this.chime([880, 1175]); }
     setMuted(m) { this.master.gain.setTargetAtTime(m ? 0 : 0.5, this.ctx.currentTime, 0.05); }
     destroy() { try { this.osc1.stop(); this.osc2.stop(); this.noise.stop(); this.ctx.close(); } catch (_) { /* 무시 */ } }
@@ -514,16 +785,23 @@
         <div class="stats">
           <div class="money" id="gMoney">0원</div>
           <div class="count" id="gCount">0건 완료</div>
-          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Space 핸드브레이크 · C 시점 <b id="gCam"></b></div>
+          <div class="meters">
+            <div class="meter dmg"><span>내구도</span><i><b id="gDmg"></b></i></div>
+            <div class="meter nit"><span>니트로</span><i><b id="gNitro"></b></i></div>
+          </div>
+          <div class="keys">W/S 가속·브레이크 · A/D 조향 · Shift 니트로 · Space 핸드브레이크 · C 시점 <b id="gCam"></b></div>
         </div>
         <div class="btns">
           <button id="gPhoneBtn" title="휴대폰 (P)">📱</button>
           <button id="gSoundBtn" title="소리 (M)">🔊</button>
           <button id="gHornBtn" title="경적 (H)">📣</button>
           <button id="gCamBtn" title="시점 (C)">🎥</button>
+          <button id="gGhostBtn" title="유령 모드 (G) · 건물 통과">👻</button>
           <button id="gExitBtn" title="종료 (Esc)">✕</button>
         </div>
       </div>
+      <div class="flash" id="gFlash"></div>
+      <div class="floats" id="gFloats"></div>
       <div class="phone" id="gPhone" hidden>
         <div class="notch"></div>
         <div class="pstatus"><span id="pTime">00:00</span><span>📶 🔋</span></div>
@@ -538,7 +816,8 @@
       <div class="cards">${Object.entries(VEHICLES).map(([k, v]) => `
         <button class="vcard" data-key="${k}" style="--c:${v.color}">
           <span class="emoji">${v.emoji}</span><b>${v.name}</b><small>${v.desc}</small>
-          <div class="bars">${bar('속도', v.maxKmh / 200)}${bar('가속', v.accel / 10)}${bar('조향', v.turn / 3)}${bar('보수', v.reward / 2)}</div>
+          <div class="bars">${bar('속도', v.maxKmh / 480)}${bar('가속', v.accel / 34)}${bar('조향', v.turn / 3.2)}${bar('내구', v.armor / 130)}${bar('파괴', v.crush / 100)}</div>
+          <small class="top">최고 ${v.maxKmh}km/h${v.crush ? ` · ${v.smashKmh}km/h 부터 건물 파괴` : ' · 건물에 튕김'}</small>
         </button>`).join('')}
       </div>
       <button class="cancel" id="gameCancel">취소</button>
@@ -549,6 +828,8 @@
       root, select: sel, mission: root.querySelector('#gMission'), minimap: root.querySelector('#minimap'), mmHeading: root.querySelector('#mmHeading'),
       vehName: root.querySelector('#gVeh'), speed: root.querySelector('#gSpeed'), gear: root.querySelector('#gGear'), needle: root.querySelector('#gNeedle'),
       money: root.querySelector('#gMoney'), count: root.querySelector('#gCount'), cam: root.querySelector('#gCam'),
+      dmgBar: root.querySelector('#gDmg'), nitroBar: root.querySelector('#gNitro'),
+      flash: root.querySelector('#gFlash'), floats: root.querySelector('#gFloats'), ghostBtn: root.querySelector('#gGhostBtn'),
       phone: root.querySelector('#gPhone'), phoneTime: root.querySelector('#pTime'), phoneName: root.querySelector('#pName'), thread: root.querySelector('#pThread'), phoneActions: root.querySelector('#pActions'),
       phoneBtn: root.querySelector('#gPhoneBtn'), soundBtn: root.querySelector('#gSoundBtn'),
     };
@@ -556,6 +837,7 @@
     ui.soundBtn.onclick = () => { game.sound = !game.sound; if (game.audio) game.audio.setMuted(!game.sound); updateHud(true); };
     root.querySelector('#gHornBtn').onclick = () => { if (game.audio) game.audio.horn(game.key); };
     root.querySelector('#gCamBtn').onclick = () => { game.cam = CAMS[(CAMS.indexOf(game.cam) + 1) % CAMS.length]; game.zoomOffset = 0; updateHud(true); };
+    root.querySelector('#gGhostBtn').onclick = toggleGhost;
     root.querySelector('#gExitBtn').onclick = stop;
     root.querySelector('#pClose').onclick = closePhone;
     map.getCanvas().addEventListener('wheel', onWheel, { passive: false });
@@ -563,6 +845,12 @@
     root.addEventListener('touchstart', e => touch(e, true), { passive: false });
     root.addEventListener('touchend', e => touch(e, false));
   }
+  function toggleGhost() {
+    game.ghost = !game.ghost;
+    app.toast(game.ghost ? '유령 모드 · 건물을 통과합니다' : '충돌 모드 · 건물에 부딪힙니다');
+    updateHud(true);
+  }
+
   function bar(label, v) { return `<div class="bar"><span>${label}</span><i style="width:${Math.round(Math.min(1, v) * 100)}%"></i></div>`; }
   function touch(e, down) {
     if (!game.active || e.target.closest('button, .phone, .req-bubble')) return;

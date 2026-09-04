@@ -39,7 +39,7 @@ body.game-on .rail.bottom { display: none; }
 .mm-label { position: absolute; left: 8px; bottom: 6px; font-size: 11px; font-weight: 700; background: var(--panel); padding: 3px 7px; border-radius: 7px; }
 
 /* 하단 계기판 */
-.hud-bottom { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; padding: 12px 18px; }
+.hud-bottom { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9; display: flex; align-items: center; gap: 18px; padding: 12px 18px; }
 .gauge { position: relative; width: 120px; height: 120px; }
 .gauge .dial { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 210deg, var(--accent) 0 66%, var(--live) 66% 66.7%, transparent 66.7%); -webkit-mask: radial-gradient(circle, transparent 52px, #000 53px); mask: radial-gradient(circle, transparent 52px, #000 53px); opacity: 0.9; }
 .gauge .needle { position: absolute; left: 50%; top: 50%; width: 3px; height: 52px; margin: -52px 0 0 -1.5px; background: #fff; border-radius: 2px; transform-origin: 50% 100%; transform: rotate(-120deg); transition: transform .12s linear; box-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
@@ -69,7 +69,7 @@ body.game-on .rail.bottom { display: none; }
 @keyframes pop { from { transform: scale(0.4); opacity: 0; } }
 
 /* 휴대폰 */
-.phone { position: absolute; right: 290px; bottom: 16px; width: 290px; height: 560px; background: #0d0f14; border: 6px solid #22262f; border-radius: 34px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; overflow: hidden; color: #f2f4f8; font-family: var(--font); animation: phoneUp .35s cubic-bezier(.2, 1.2, .4, 1); }
+.phone { position: absolute; right: 16px; bottom: 16px; z-index: 12; width: 290px; height: 540px; background: #0d0f14; border: 6px solid #22262f; border-radius: 34px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; overflow: hidden; color: #f2f4f8; font-family: var(--font); animation: phoneUp .35s cubic-bezier(.2, 1.2, .4, 1); }
 @keyframes phoneUp { from { transform: translateY(40px); opacity: 0; } }
 .phone .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 110px; height: 22px; background: #22262f; border-radius: 0 0 14px 14px; z-index: 2; }
 .phone .pstatus { display: flex; justify-content: space-between; padding: 8px 18px 4px; font: 600 11px var(--mono); color: #aab2c0; }
@@ -94,5 +94,35 @@ body.game-on .rail.bottom { display: none; }
   .stats .keys { display: none; }
   .gauge { width: 90px; height: 90px; }
   .gauge .speed b { font-size: 22px; }
-  .phone { right: 8px; bottom: 150px; width: 250px; height: 440px; }
+  .phone { right: 8px; bottom: 150px; width: 250px; height: 400px; }
 }
+
+/* ── 내구도 · 니트로 게이지 ─────────────────────── */
+.stats .meters { display: grid; gap: 4px; margin-top: 6px; }
+.stats .meter { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 7px; font-size: 10px; color: var(--text-faint); }
+.stats .meter i { display: block; height: 6px; border-radius: 4px; background: rgba(127, 127, 127, 0.22); overflow: hidden; }
+.stats .meter b { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .18s ease; }
+.stats .meter.dmg b { background: linear-gradient(90deg, #f5c22b, #ff5c5c); }
+.stats .meter.dmg b.crit { animation: dmgPulse .5s infinite; }
+.stats .meter.nit b { background: linear-gradient(90deg, #4fc3ff, #8f7bff); }
+.stats .meter.nit b.boost { box-shadow: 0 0 10px #4fc3ff; }
+@keyframes dmgPulse { 50% { opacity: 0.4; } }
+
+/* ── 충돌 화면 효과 ─────────────────────────────── */
+.flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .18s ease; }
+.flash.hit { opacity: 1; box-shadow: inset 0 0 180px 40px rgba(255, 90, 70, 0.55); background: radial-gradient(circle at 50% 62%, rgba(255, 220, 180, 0.22), transparent 55%); }
+.flash.smash { opacity: 1; box-shadow: inset 0 0 220px 60px rgba(255, 170, 40, 0.6); background: radial-gradient(circle at 50% 62%, rgba(255, 245, 210, 0.35), transparent 60%); }
+
+.floats { position: absolute; left: 50%; top: 46%; transform: translateX(-50%); pointer-events: none; display: grid; justify-items: center; gap: 6px; }
+.float-text { font-weight: 900; letter-spacing: -0.02em; white-space: nowrap; text-shadow: 0 3px 14px rgba(0, 0, 0, 0.7); animation: floatUp 1.4s cubic-bezier(.2, .9, .3, 1) forwards; }
+.float-text.hit { font-size: 34px; color: #ff8f6b; }
+.float-text.smash { font-size: 30px; color: #ffd166; }
+@keyframes floatUp {
+  0% { transform: translateY(14px) scale(0.6); opacity: 0; }
+  18% { transform: translateY(0) scale(1.12); opacity: 1; }
+  30% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-70px) scale(1); opacity: 0; }
+}
+
+.game-select .vcard small.top { color: var(--c); font-weight: 700; font-size: 10px; min-height: 0; margin-top: 6px; }
+#gGhostBtn.on { background: rgba(143, 123, 255, 0.3); box-shadow: 0 0 0 1px #8f7bff inset; }
